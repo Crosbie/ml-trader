@@ -145,7 +145,7 @@ from lumibot.brokers import Alpaca
 from lumibot.backtesting import YahooDataBacktesting
 from lumibot.strategies.strategy import Strategy
 from lumibot.traders import Trader
-from datetime import datetime 
+from datetime import datetime timedelta
 
 class MLTrader(Strategy): 
     def initialize(self, symbol:str=SYMBOL, cash_at_risk:float=.5): 
