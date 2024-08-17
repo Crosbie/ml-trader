@@ -162,6 +162,7 @@ class MLTrader(Strategy):
         quantity = round(cash * self.cash_at_risk / last_price,0)
         return cash, last_price, quantity
 
+
     def get_predicted_close(self,):
         today = self.get_datetime().strftime("%Y-%m-%d")
         print(today)
