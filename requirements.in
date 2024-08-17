@@ -1,0 +1,12 @@
+# requirements.in
+
+alpaca_trade_api
+datetime
+lumibot
+matplotlib
+numpy
+datetime
+pandas
+pandas_ta
+scikit-learn
+yfinance==0.2.40
