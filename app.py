@@ -146,8 +146,6 @@ from lumibot.backtesting import YahooDataBacktesting
 from lumibot.strategies.strategy import Strategy
 from lumibot.traders import Trader
 from datetime import datetime 
-from timedelta import Timedelta 
-from finbert_utils import estimate_sentiment
 
 class MLTrader(Strategy): 
     def initialize(self, symbol:str=SYMBOL, cash_at_risk:float=.5): 
@@ -164,11 +162,6 @@ class MLTrader(Strategy):
         quantity = round(cash * self.cash_at_risk / last_price,0)
         return cash, last_price, quantity
 
-    def get_dates(self): 
-        today = self.get_datetime()
-        three_days_prior = today - Timedelta(days=3)
-        return today.strftime('%Y-%m-%d'), three_days_prior.strftime('%Y-%m-%d')
-    
     def get_predicted_close(self,):
         today = self.get_datetime().strftime("%Y-%m-%d")
         print(today)
