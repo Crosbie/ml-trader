@@ -194,6 +194,9 @@ class MLTrader(Strategy):
         pred = regressor.predict(today_df)
         print(pred)
         return pred
+    
+    def before_market_closes(self):
+        self.on_trading_iteration(self)
 
     def on_trading_iteration(self):
         cash, last_price, quantity = self.position_sizing() 
