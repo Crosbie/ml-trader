@@ -28,7 +28,6 @@ ALPACA_CREDS = {
 
 
 SYMBOL = "AAPL"
-pSymbol = "aapl"
 
 # Load data
 # df = pd.read_csv("data/stock.csv", sep=",")
@@ -42,7 +41,7 @@ pSymbol = "aapl"
 # History by Interval by interval (including intraday if period < 60 days)
 # Valid intervals: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo
 # Default: "1d"
-df = df.ta.ticker(pSymbol, period="5y", interval="1d") # Gets this past month in hours
+df = df.ta.ticker(SYMBOL, period="5y", interval="1d") # Gets this past month in hours
 # Clean df
 df.drop('Stock Splits', axis=1, inplace=True)
 df.drop('Dividends', axis=1, inplace=True)
@@ -58,39 +57,51 @@ df.ta.percent_return(cumulative=False, append=True)
 df["up"] = (df.ta.percent_return(cumulative=False) > 0)
 
 
-#  Golden Cross
+#  Next close
+lastCloseDf = df.tail(1)
+lastClose = lastCloseDf.iloc[0]['Close']
 
+df['Next Close'] = df['Close'].shift(-1, fill_value=lastClose)
 
 
 df.ta.inertia(append=True)
-df.ta.rsi(append=True);
-df.ta.vwap(append=True);
+df.ta.rsi(append=True)
+df.ta.vwap(append=True)
 df.ta.cdl_pattern(name=["doji"],append=True)
+df['SMA 10'] = df.ta.sma(10)
+df['SMA 50'] = df.ta.sma(50)
+df['SMA 200'] = df.ta.sma(200)
+df['EMA 20'] = df.ta.ema(20)
+df['GoldenCross'] = (df['SMA 50'] > df['SMA 200'])
+df.ta.obv(append=True)
+
 
 
 # df.ta.strategy("Momentum") # Default values for all Momentum indicators
 # df.ta.strategy("overlap", length=42) # Override all Overlap 'length' attributes
 
-# Take a peek
-logging.info("Hello World!")
 
 # logging.info(df.tail(50))
-df.drop('Volume', axis=1, inplace=True)
+# df.drop('Volume', axis=1, inplace=True)
 # df.plot()
 # logging.info(help(ta.inertia))
 
 
 
 # INFERENCE
-df.drop('High', axis=1, inplace=True)
-df.drop('Low', axis=1, inplace=True)
-df.drop('PCTRET_1', axis=1, inplace=True)
-df.drop('up', axis=1, inplace=True)
-df = df.select_dtypes(exclude=['object'])
+# df.drop('High', axis=1, inplace=True)
+# df.drop('Low', axis=1, inplace=True)
+# df.drop('PCTRET_1', axis=1, inplace=True)
+# df.drop('up', axis=1, inplace=True)
+
+# remove object fields from df
+# df = df.select_dtypes(exclude=['object'])
+
+# change NAN with mean value
 df=df.fillna(df.mean())
 
-X = df.drop('Close',axis=1)
-y = df['Close']
+X = df.drop('Next Close',axis=1)
+y = df['Next Close']
 
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
@@ -125,16 +136,25 @@ mape = 100 * (errors / y_test)
 accuracy = 100 - np.mean(mape)
 print('Accuracy:', round(accuracy, 2), '%.')
 result.sort_index(inplace=True)
-print(result.tail(1))
-tail = result.tail(5)
-tail.plot()
+print(result.tail(5))
+tail = result.tail(155)
+tail.plot(figsize=(10, 4))
 
+
+
+
+# predict todays close
+
+today_df = df.tail(1)
+today_df = today_df.drop('Next Close',axis=1)
+
+# print(today_df)
+pred = regressor.predict(today_df)
+print('prediction')
+print(pred)
 
 # New Columns with results
 # print(df.columns)
-
-
-
 
 # ==================================
 #  Trade Strat
@@ -146,6 +166,7 @@ from lumibot.backtesting import YahooDataBacktesting
 from lumibot.strategies.strategy import Strategy
 from lumibot.traders import Trader
 from datetime import datetime 
+from timedelta import Timedelta 
 
 class MLTrader(Strategy): 
     def initialize(self, symbol:str=SYMBOL, cash_at_risk:float=.5): 
@@ -162,16 +183,18 @@ class MLTrader(Strategy):
         quantity = round(cash * self.cash_at_risk / last_price,0)
         return cash, last_price, quantity
 
-
+    def get_dates(self): 
+        today = self.get_datetime()
+        three_days_prior = today - Timedelta(days=3)
+        return today.strftime('%Y-%m-%d'), three_days_prior.strftime('%Y-%m-%d')
+    
     def get_predicted_close(self,):
         today = self.get_datetime().strftime("%Y-%m-%d")
         print(today)
 
         
         today_df = df[today:today]
-        today_df = today_df.drop('Close',axis=1)
-        # today_df = today_df.drop('PCTRET_1',axis=1)
-        # today_df = today_df.drop('up',axis=1)
+        today_df = today_df.drop('Next Close',axis=1)
 
         print(today_df)
         pred = regressor.predict(today_df)
@@ -222,7 +245,7 @@ class MLTrader(Strategy):
                 self.last_trade = "sell"
 
 start_date = datetime(2020,8,1)
-end_date = datetime(2024,8,16) 
+end_date = datetime(2024,8,19) 
 broker = Alpaca(ALPACA_CREDS) 
 strategy = MLTrader(name='mlstrat', broker=broker, 
                     parameters={"symbol":SYMBOL, 
