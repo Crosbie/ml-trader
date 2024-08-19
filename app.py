@@ -13,9 +13,6 @@ logging.basicConfig(format="{message}", style="{",level=logging.INFO)
 
 df = pd.DataFrame() # Empty DataFrame
 
-# Run using 4/10 cores of macbook
-# df.ta.cores = 4
-
 API_KEY = "PK21WN1YFV30FA4LN29P" 
 API_SECRET = "hlG6wHwHzU5QelX06Mkf420G930E4zKXh9BKYYle" 
 BASE_URL = "https://paper-api.alpaca.markets/v2"
@@ -41,15 +38,10 @@ SYMBOL = "AAPL"
 # History by Interval by interval (including intraday if period < 60 days)
 # Valid intervals: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo
 # Default: "1d"
-df = df.ta.ticker(SYMBOL, period="5y", interval="1d") # Gets this past month in hours
+df = df.ta.ticker(SYMBOL, period="5y", interval="1d")
 # Clean df
 df.drop('Stock Splits', axis=1, inplace=True)
 df.drop('Dividends', axis=1, inplace=True)
-
-
-# VWAP requires the DataFrame index to be a DatetimeIndex.
-# Replace "datetime" with the appropriate column from your DataFrame
-# df.set_index(pd.DatetimeIndex(df["datetime"]), inplace=True)
 
 # Calculate Returns and append to the df DataFrame
 # df.ta.log_return(cumulative=True, append=True)
@@ -75,31 +67,14 @@ df['EMA 20'] = df.ta.ema(20)
 df['GoldenCross'] = (df['SMA 50'] > df['SMA 200'])
 df.ta.obv(append=True)
 
-
-
-# df.ta.strategy("Momentum") # Default values for all Momentum indicators
-# df.ta.strategy("overlap", length=42) # Override all Overlap 'length' attributes
-
-
-# logging.info(df.tail(50))
-# df.drop('Volume', axis=1, inplace=True)
-# df.plot()
-# logging.info(help(ta.inertia))
-
-
-
-# INFERENCE
-# df.drop('High', axis=1, inplace=True)
-# df.drop('Low', axis=1, inplace=True)
-# df.drop('PCTRET_1', axis=1, inplace=True)
-# df.drop('up', axis=1, inplace=True)
-
 # remove object fields from df
 # df = df.select_dtypes(exclude=['object'])
 
 # change NAN with mean value
 df=df.fillna(df.mean())
 
+
+# prep testing & training dataframes
 X = df.drop('Next Close',axis=1)
 y = df['Next Close']
 
@@ -175,6 +150,7 @@ class MLTrader(Strategy):
         self.cash_at_risk = cash_at_risk
         self.threshold = 1
         self.trail_percent = 2.5
+        self.minutes_before_closing = 2
 
     def position_sizing(self): 
         cash = self.get_cash() 
@@ -184,8 +160,6 @@ class MLTrader(Strategy):
 
     def get_predicted_close(self,):
         today = self.get_datetime().strftime("%Y-%m-%d")
-        print(today)
-
         
         today_df = df[today:today]
         today_df = today_df.drop('Next Close',axis=1)
@@ -196,6 +170,7 @@ class MLTrader(Strategy):
         return pred
     
     def before_market_closes(self):
+        print('Before market close event!')
         self.on_trading_iteration(self)
 
     def on_trading_iteration(self):
