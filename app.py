@@ -153,7 +153,7 @@ class MLTrader(Strategy):
         self.sleeptime = "24H"
         self.last_trade = None 
         self.cash_at_risk = cash_at_risk
-        self.threshold = 2
+        self.threshold = 1
         self.trail_percent = 2.5
 
     def position_sizing(self): 
