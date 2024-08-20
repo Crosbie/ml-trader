@@ -24,6 +24,11 @@ API_KEY = os.getenv("API_KEY")
 API_SECRET = os.getenv("API_SECRET")
 BASE_URL = os.getenv("BASE_URL")
 
+if API_KEY is None:
+    API_KEY = os.environ.get('API_KEY')
+    API_SECRET = os.environ.get('API_SECRET')
+    BASE_URL = os.environ.get('BASE_URL')
+
 ALPACA_CREDS = {
     "API_KEY":API_KEY, 
     "API_SECRET": API_SECRET, 
