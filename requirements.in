@@ -2,6 +2,8 @@
 
 alpaca_trade_api
 datetime
+flask
+joblib
 lumibot
 matplotlib
 numpy

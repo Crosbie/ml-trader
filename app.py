@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import pandas_ta as ta
 import yfinance as yf
+import joblib
 import logging
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
@@ -29,8 +30,8 @@ ALPACA_CREDS = {
     "PAPER": True
 }
 
-symbols = ['AAPL','EURUSD=X','^GSPC','BTC-USD', 'ETH-USD', '^GDAXI','GC=F']
-SYMBOL = symbols[0]
+symbols = ['AAPL','^GSPC','BTC-USD', 'ETH-USD', '^GDAXI','GC=F']
+SYMBOL = symbols[5]
 print('Symbol:',SYMBOL)
 
 # Load data
@@ -94,6 +95,10 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_
 
 model = RandomForestRegressor(n_estimators = 1000, random_state = 42)
 model.fit(X_train, y_train)
+
+# store model
+name = SYMBOL + '-model.pkl'
+joblib.dump(model, 'models/'+name)
 
 y_pred = model.predict(X_test)
 
@@ -195,10 +200,13 @@ class MLTrader(Strategy):
         todayStr = today.strftime("%Y-%m-%d")
         print('Date', todayStr)
 
-        newData = pd.DataFrame() # Empty DataFrame
-        newData = newData.ta.ticker(SYMBOL, period=self.period, interval="1d")
-        # print(newData.tail(5))
-        newData = build_dataFrame(newData)
+        if self.is_backtesting:
+            newData = df
+        else:
+            newData = pd.DataFrame() # Empty DataFrame
+            newData = newData.ta.ticker(SYMBOL, period=self.period, interval="1d")
+            # print(newData.tail(5))
+            newData = build_dataFrame(newData)
 
         
         today_df = newData[todayStr:todayStr]
@@ -280,16 +288,19 @@ strategy = MLTrader(name='mlstrat', broker=broker,
 
 
 
-print(os.environ.get('APP_FILE'))
-if os.environ.get('APP_FILE'):
-    trader = Trader()
-    trader.add_strategy(strategy)
-    trader.run_all()
-else:
-    strategy.backtest(
-        YahooDataBacktesting, 
-        start_date, 
-        end_date, 
-        parameters={"symbol":SYMBOL, "cash_at_risk":.8},
-        benchmark_asset=SYMBOL
-    )
+if __name__ == '__main__':
+    print(os.environ.get('APP_FILE'))
+    if os.environ.get('APP_FILE'):
+        trader = Trader()
+        trader.add_strategy(strategy)
+        trader.run_all()
+    else:
+        # print('helo')
+        strategy.backtest(
+            YahooDataBacktesting, 
+            start_date, 
+            end_date, 
+            parameters={"symbol":SYMBOL, "cash_at_risk":.8},
+            benchmark_asset=SYMBOL
+        )
+
