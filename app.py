@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import pandas_ta as ta
 import yfinance as yf
@@ -5,7 +6,7 @@ import logging
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn import metrics
-
+from dotenv import load_dotenv
 import numpy as np
 import matplotlib.pyplot as plt
 # %matplotlib inline
@@ -13,11 +14,14 @@ import matplotlib.pyplot as plt
 # logging.basicConfig(format="{asctime} - {levelname} - {message}", style="{",level=logging.INFO)
 logging.basicConfig(format="{message}", style="{",level=logging.INFO)
 
+# Load Env vars
+load_dotenv()
+
 df = pd.DataFrame() # Empty DataFrame
 
-API_KEY = "PK21WN1YFV30FA4LN29P" 
-API_SECRET = "hlG6wHwHzU5QelX06Mkf420G930E4zKXh9BKYYle" 
-BASE_URL = "https://paper-api.alpaca.markets/v2"
+API_KEY = os.getenv("API_KEY")
+API_SECRET = os.getenv("API_SECRET")
+BASE_URL = os.getenv("BASE_URL")
 
 ALPACA_CREDS = {
     "API_KEY":API_KEY, 
@@ -25,7 +29,7 @@ ALPACA_CREDS = {
     "PAPER": True
 }
 
-symbols = ['AAPL','EURUSD=X','^GSPC','BTC-USD','^GDAXI','GC=F']
+symbols = ['AAPL','EURUSD=X','^GSPC','BTC-USD', 'ETH-USD', '^GDAXI','GC=F']
 SYMBOL = symbols[0]
 print('Symbol:',SYMBOL)
 
@@ -48,7 +52,7 @@ def build_dataFrame(fresh_df):
     fresh_df.drop('Dividends', axis=1, inplace=True)
 
     # Calculate Returns and append to the df DataFrame
-    fresh_df.ta.percent_return(cumulative=False)
+    fresh_df.ta.percent_return(cumulative=False, append=True)
     fresh_df["up"] = (fresh_df.ta.percent_return(cumulative=False) > 0)
 
 
@@ -119,24 +123,33 @@ tail = result.tail(155)
 
 
 # ====================
-# predict tomorrows close
+# predict today/tomorrows close
 # ====================
 
-# today_df = df.tail(1)
+# today = True
+# index = 0
+# today_df = df.tail(2)
 # today_df = today_df.drop('Next Close',axis=1)
 # print(today_df)
 
 # pred = model.predict(today_df)
-# print('tomorrows close prediction:', pred[0])
+# print('tomorrows close prediction:', pred)
 
-# todayClose = today_df.iloc[0]['Close']
-# pred = pred[0]
-# print(todayClose)
+# if today:
+#     print('getting todays close...')
+#     index = 0
+# else:
+#     print('getting tomorrows close...')
+#     index = 1
+
+# todayClose = today_df.iloc[index]['Close']
+# pred = pred[index]
+# print('Predicted Close',pred)
 
 
 # diff = pred - todayClose
 # diff_percent = (diff/todayClose)*100
-# print(diff_percent)
+# print('Predicted %', round(diff_percent, 3))
 
 
 
@@ -164,10 +177,12 @@ class MLTrader(Strategy):
         self.threshold = 1
         self.trail_percent = 2.5
         self.minutes_before_closing = 5
+        self.period = '1y'
 
         if self.is_backtesting:
             print("Running in backtesting mode")
             self.sleeptime = "24H"
+            self.period = '5y'
 
     def position_sizing(self): 
         cash = self.get_cash() 
@@ -178,24 +193,31 @@ class MLTrader(Strategy):
     def get_predicted_close(self):
         today = self.get_datetime()
         todayStr = today.strftime("%Y-%m-%d")
+        print('Date', todayStr)
 
         newData = pd.DataFrame() # Empty DataFrame
-        newData = newData.ta.ticker(SYMBOL, period="1y", interval="1d")
-        print(newData.tail(5))
+        newData = newData.ta.ticker(SYMBOL, period=self.period, interval="1d")
+        # print(newData.tail(5))
         newData = build_dataFrame(newData)
 
         
         today_df = newData[todayStr:todayStr]
         today_df = today_df.drop('Next Close',axis=1)
 
-        print(today_df)
+        if today_df.empty:
+            print('*****************')
+            print('No data for', todayStr)
+            print('*****************')
+            return 0
+
+        # print(today_df)
         pred = model.predict(today_df)
         print(pred)
         return pred
     
     def before_market_closes(self):
         print('Before market close event!')
-        self.on_trading_iteration(self)
+        self.on_trading_iteration()
 
     def on_trading_iteration(self):
 
@@ -205,6 +227,9 @@ class MLTrader(Strategy):
 
         cash, last_price, quantity = self.position_sizing() 
         pred_close = self.get_predicted_close()
+
+        if pred_close == 0:
+            pred_close = last_price
 
         diff = pred_close - last_price
         diff_percent = (diff/last_price)*100
@@ -245,20 +270,26 @@ class MLTrader(Strategy):
                 self.submit_order(order) 
                 self.last_trade = "sell"
 
-start_date = datetime(2024,8,3)
+start_date = datetime(2020,8,3)
 end_date = datetime(2024,8,19) 
 broker = Alpaca(ALPACA_CREDS) 
 strategy = MLTrader(name='mlstrat', broker=broker, 
                     parameters={"symbol":SYMBOL, 
                                 "cash_at_risk":.8})
-# strategy.backtest(
-#     YahooDataBacktesting, 
-#     start_date, 
-#     end_date, 
-#     parameters={"symbol":SYMBOL, "cash_at_risk":.8},
-#     benchmark_asset=SYMBOL
-# )
 
-trader = Trader()
-trader.add_strategy(strategy)
-trader.run_all()
+
+
+
+print(os.environ.get('APP_FILE'))
+if os.environ.get('APP_FILE'):
+    trader = Trader()
+    trader.add_strategy(strategy)
+    trader.run_all()
+else:
+    strategy.backtest(
+        YahooDataBacktesting, 
+        start_date, 
+        end_date, 
+        parameters={"symbol":SYMBOL, "cash_at_risk":.8},
+        benchmark_asset=SYMBOL
+    )

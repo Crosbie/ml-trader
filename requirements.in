@@ -8,5 +8,6 @@ numpy
 datetime
 pandas
 pandas_ta
+python-dotenv
 scikit-learn
 yfinance==0.2.40
