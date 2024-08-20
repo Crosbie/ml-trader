@@ -3,6 +3,8 @@ import pandas_ta as ta
 import yfinance as yf
 import logging
 from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn import metrics
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -23,15 +25,12 @@ ALPACA_CREDS = {
     "PAPER": True
 }
 
-
-SYMBOL = "AAPL"
+symbols = ['AAPL','EURUSD=X','^GSPC','BTC-USD','^GDAXI','GC=F']
+SYMBOL = symbols[0]
+print('Symbol:',SYMBOL)
 
 # Load data
-# df = pd.read_csv("data/stock.csv", sep=",")
-# OR if you have yfinance installed
-# df = df.ta.ticker("aapl")
 
-# Period is used instead of start/end
 # Valid periods: 1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max
 # Default: "max"
 
@@ -39,33 +38,44 @@ SYMBOL = "AAPL"
 # Valid intervals: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo
 # Default: "1d"
 df = df.ta.ticker(SYMBOL, period="5y", interval="1d")
-# Clean df
-df.drop('Stock Splits', axis=1, inplace=True)
-df.drop('Dividends', axis=1, inplace=True)
-
-# Calculate Returns and append to the df DataFrame
-# df.ta.log_return(cumulative=True, append=True)
-df.ta.percent_return(cumulative=False, append=True)
-df["up"] = (df.ta.percent_return(cumulative=False) > 0)
 
 
-#  Next close
-lastCloseDf = df.tail(1)
-lastClose = lastCloseDf.iloc[0]['Close']
-
-df['Next Close'] = df['Close'].shift(-1, fill_value=lastClose)
 
 
-df.ta.inertia(append=True)
-df.ta.rsi(append=True)
-df.ta.vwap(append=True)
-df.ta.cdl_pattern(name=["doji"],append=True)
-df['SMA 10'] = df.ta.sma(10)
-df['SMA 50'] = df.ta.sma(50)
-df['SMA 200'] = df.ta.sma(200)
-df['EMA 20'] = df.ta.ema(20)
-df['GoldenCross'] = (df['SMA 50'] > df['SMA 200'])
-df.ta.obv(append=True)
+def build_dataFrame(fresh_df):
+    # Clean df
+    fresh_df.drop('Stock Splits', axis=1, inplace=True)
+    fresh_df.drop('Dividends', axis=1, inplace=True)
+
+    # Calculate Returns and append to the df DataFrame
+    fresh_df.ta.percent_return(cumulative=False)
+    fresh_df["up"] = (fresh_df.ta.percent_return(cumulative=False) > 0)
+
+
+    #  Next close
+    lastCloseDf =fresh_df.tail(1)
+    lastClose = lastCloseDf.iloc[0]['Close']
+
+    fresh_df['Next Close'] = fresh_df['Close'].shift(-1, fill_value=lastClose)
+
+    fresh_df.ta.inertia(append=True)
+    fresh_df.ta.rsi(append=True)
+    fresh_df.ta.vwap(append=True)
+    fresh_df.ta.cdl_pattern(name=["doji"],append=True)
+    fresh_df['SMA 10'] = fresh_df.ta.sma(10)
+    fresh_df['SMA 50'] = fresh_df.ta.sma(50)
+    fresh_df['SMA 200'] = fresh_df.ta.sma(200)
+    fresh_df['EMA 20'] = fresh_df.ta.ema(20)
+    fresh_df['GoldenCross'] = (fresh_df['SMA 50'] > fresh_df['SMA 200'])
+    fresh_df.ta.obv(append=True)
+
+    return fresh_df
+
+
+df = build_dataFrame(df)
+
+
+# INFERENCE
 
 # remove object fields from df
 # df = df.select_dtypes(exclude=['object'])
@@ -73,32 +83,23 @@ df.ta.obv(append=True)
 # change NAN with mean value
 df=df.fillna(df.mean())
 
-
-# prep testing & training dataframes
 X = df.drop('Next Close',axis=1)
 y = df['Next Close']
 
-
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
 
+model = RandomForestRegressor(n_estimators = 1000, random_state = 42)
+model.fit(X_train, y_train)
 
-from sklearn.ensemble import RandomForestRegressor
-regressor = RandomForestRegressor(n_estimators = 1000, random_state = 42)
-regressor.fit(X_train, y_train)
-
-y_pred = regressor.predict(X_test)
+y_pred = model.predict(X_test)
 
 result=pd.DataFrame({'Actual':y_test, 'Predicted':y_pred})
 
 
-
-from sklearn import metrics
 print('Mean Absolute Error:', metrics.mean_absolute_error(y_test, y_pred))
 print('Mean Squared Error:', metrics.mean_squared_error(y_test, y_pred))
 print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
 # Mean Absolute Error: 1993.2901175839186 # <20%
-# Mean Squared Error: 9668487.223350348
-# Root Mean Squared Error: 3109.4191134921566
 
 # Calculate the absolute errors
 errors = abs(y_pred - y_test)
@@ -111,25 +112,37 @@ mape = 100 * (errors / y_test)
 accuracy = 100 - np.mean(mape)
 print('Accuracy:', round(accuracy, 2), '%.')
 result.sort_index(inplace=True)
-print(result.tail(5))
+# print(result.tail(5))
 tail = result.tail(155)
-tail.plot(figsize=(10, 4))
+# tail.plot(figsize=(10, 4))
 
 
 
+# ====================
+# predict tomorrows close
+# ====================
 
-# predict todays close
-
-today_df = df.tail(1)
-today_df = today_df.drop('Next Close',axis=1)
-
+# today_df = df.tail(1)
+# today_df = today_df.drop('Next Close',axis=1)
 # print(today_df)
-pred = regressor.predict(today_df)
-print('prediction')
-print(pred)
 
-# New Columns with results
+# pred = model.predict(today_df)
+# print('tomorrows close prediction:', pred[0])
+
+# todayClose = today_df.iloc[0]['Close']
+# pred = pred[0]
+# print(todayClose)
+
+
+# diff = pred - todayClose
+# diff_percent = (diff/todayClose)*100
+# print(diff_percent)
+
+
+
+# print Columns
 # print(df.columns)
+
 
 # ==================================
 #  Trade Strat
@@ -145,12 +158,16 @@ from datetime import datetime
 class MLTrader(Strategy): 
     def initialize(self, symbol:str=SYMBOL, cash_at_risk:float=.5): 
         self.symbol = symbol
-        self.sleeptime = "24H"
+        self.sleeptime = "5M"
         self.last_trade = None 
         self.cash_at_risk = cash_at_risk
         self.threshold = 1
         self.trail_percent = 2.5
-        self.minutes_before_closing = 2
+        self.minutes_before_closing = 5
+
+        if self.is_backtesting:
+            print("Running in backtesting mode")
+            self.sleeptime = "24H"
 
     def position_sizing(self): 
         cash = self.get_cash() 
@@ -158,14 +175,21 @@ class MLTrader(Strategy):
         quantity = round(cash * self.cash_at_risk / last_price,0)
         return cash, last_price, quantity
 
-    def get_predicted_close(self,):
-        today = self.get_datetime().strftime("%Y-%m-%d")
+    def get_predicted_close(self):
+        today = self.get_datetime()
+        todayStr = today.strftime("%Y-%m-%d")
+
+        newData = pd.DataFrame() # Empty DataFrame
+        newData = newData.ta.ticker(SYMBOL, period="1y", interval="1d")
+        print(newData.tail(5))
+        newData = build_dataFrame(newData)
+
         
-        today_df = df[today:today]
+        today_df = newData[todayStr:todayStr]
         today_df = today_df.drop('Next Close',axis=1)
 
         print(today_df)
-        pred = regressor.predict(today_df)
+        pred = model.predict(today_df)
         print(pred)
         return pred
     
@@ -174,6 +198,11 @@ class MLTrader(Strategy):
         self.on_trading_iteration(self)
 
     def on_trading_iteration(self):
+
+        if self.first_iteration:
+            print('first iteration')
+            self.await_market_to_close(5) # pause trading_iteration until 5mins before close
+
         cash, last_price, quantity = self.position_sizing() 
         pred_close = self.get_predicted_close()
 
@@ -216,7 +245,7 @@ class MLTrader(Strategy):
                 self.submit_order(order) 
                 self.last_trade = "sell"
 
-start_date = datetime(2020,8,1)
+start_date = datetime(2024,8,3)
 end_date = datetime(2024,8,19) 
 broker = Alpaca(ALPACA_CREDS) 
 strategy = MLTrader(name='mlstrat', broker=broker, 
@@ -227,7 +256,7 @@ strategy = MLTrader(name='mlstrat', broker=broker,
 #     start_date, 
 #     end_date, 
 #     parameters={"symbol":SYMBOL, "cash_at_risk":.8},
-#     benchmark_asset="AAPL"
+#     benchmark_asset=SYMBOL
 # )
 
 trader = Trader()
