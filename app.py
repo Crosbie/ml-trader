@@ -158,7 +158,7 @@ from datetime import datetime
 class MLTrader(Strategy): 
     def initialize(self, symbol:str=SYMBOL, cash_at_risk:float=.5): 
         self.symbol = symbol
-        self.sleeptime = "5M"
+        self.sleeptime = "1H"
         self.last_trade = None 
         self.cash_at_risk = cash_at_risk
         self.threshold = 1
