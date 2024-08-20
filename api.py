@@ -28,6 +28,9 @@ def predict(index):
 
             msg = "AAPL: Todays Close prediction"
 
+            if index is None:
+                index = 1
+
             if index == 1:
                 msg = "AAPL: Tomorrows Close prediction"
 
