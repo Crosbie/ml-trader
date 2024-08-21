@@ -27,7 +27,7 @@ def predict(index):
             AAPL_df = getData('AAPL').tail(2)
             AAPL_df = AAPL_df.drop('Next Close',axis=1)
 
-            GOLD_df = getData('AAPL').tail(2)
+            GOLD_df = getData('GC=F').tail(2)
             GOLD_df = GOLD_df.drop('Next Close',axis=1)
             
 
