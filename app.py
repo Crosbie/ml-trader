@@ -103,7 +103,7 @@ model.fit(X_train, y_train)
 
 # store model
 name = SYMBOL + '-model.pkl'
-joblib.dump(model, 'models/'+name)
+# joblib.dump(model, 'models/'+name)
 
 y_pred = model.predict(X_test)
 

@@ -17,7 +17,7 @@ def hello():
 
 @app.route('/predict/<int:index>', methods=['GET'])
 def predict(index):
-    if model:
+    if model1:
         try:
             # json_ = request.json
             # print(json_)
@@ -46,7 +46,7 @@ def predict(index):
                 msg1 = "AAPL: Tomorrows Close prediction"
                 msg2 = "GOLD: Tomorrows Close prediction"
 
-            return jsonify({msg1: str(pred1[index],msg2: str(pred2[index])})
+            return jsonify({msg1: str(pred1[index]), msg2: str(pred2[index])})
             
 
         except:
