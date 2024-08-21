@@ -59,13 +59,43 @@ def fetch(symbol):
             df = df.drop('Next Close',axis=1)
             pred = model.predict(df)
 
-            data = {}
-            data[symbol] = [
-                {"Todays Close": pred[0]},
-                {"Tomorrows Close" :pred[1]}
-            ]
+            # data = {}
+            # data[symbol] = [
+            #     {"Todays Close": pred[0]},
+            #     {"Tomorrows Close" :pred[1]}
+            # ]
 
-            data = '<h5>'+symbol+'</h5>Todays Close: '+str(pred[0])+'</br>Tomorrows Close: '+ str(pred[1])
+            yesterdayOpen = df['Open'][0]
+            yesterdayClose = df['Close'][0]
+
+            todayClose = round(df['Close'][1],4)
+            todayOpen = round(df['Open'][1],4)
+
+            todayDiff = pred[0] - yesterdayClose
+            tomorrowDiff = pred[1] - todayClose
+
+            todayDiff_pc = round((todayDiff/yesterdayClose)*100,2)
+            tomorrowDiff_pc = round((tomorrowDiff/todayClose)*100,2)
+
+            x = ' '.join(("multiline String ",
+            "Python Language",
+            "Welcome to GFG"))
+
+            data = ' '.join(('<h4>'+symbol+'</h4>',
+            '<h5>Todays Open:</h5>',
+             str(todayOpen),
+            '<h5>Todays Close (pred):</h5>',
+             str(round(pred[0],4)),
+            '<span>diff:',
+             str(todayDiff_pc) + '%',
+            '</span></hr></br>',
+            '<h5>Tomorrow Open:</h5>',
+             str(todayClose),
+            '<h5>Tomorrow Close (pred):</h5>',
+             str(round(pred[1],4)),
+            '<span>diff:',
+             str(tomorrowDiff_pc) + '%',
+            '</span></hr></br>'))
 
             return page + str(data)
         except:
