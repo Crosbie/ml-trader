@@ -9,17 +9,27 @@ from app import build_dataFrame, train_model
 
 latest_preds = {}
 
+page = '''<div style="font-family:verdana;background:#cdcdcd;border-radius:20px;padding:150px;margin:20px">
+    <h2><a href="/">Home</a></h2>
+    <h2><a href="/train/AAPL">/train/(symbol)</a> to train a new model, takes <40sec</h2>
+    <h2><a href="/fetch/AAPL">/fetch/(symbol)</a> to predict using model</h2>
+    <h2><a href="/models">/models</a> to list all trained models</h2>
+'''
+
 # Your API definition
 app = Flask(__name__)
 
 @app.route('/')
 def hello():
-    page = '''<div style="font-family:verdana;background:#cdcdcd;border-radius:20px;padding:150px;margin:20px">
-        <h2>Call <a href="/train/AAPL">/train/(symbol)</a> to train a new model, takes <40sec</h2>
-        <h2>Call <a href="/fetch/AAPL">/fetch/(symbol)</a> to predict using model</h2>
-    '''
     return page
 
+
+@app.route('/models')
+def models():
+
+    filenames = next(os.walk('models/'), (None, None, []))[2]  # [] if no file
+    model_page = page + str(filenames)
+    return model_page
 
 @app.route('/train/<symbol>')
 def train(symbol):
@@ -27,12 +37,13 @@ def train(symbol):
     df = getData(symbol)
     if df.empty:
         msg = "Invalid ticker: "+symbol
-        return msg
+
+        return page + msg
     else:
         accuracy, model = train_model(symbol)
         accuracy = round(accuracy, 2)
         accuracy = str(accuracy) + '%'
-        return 'Trained model on: '+ symbol + '. Accuracy: '+ accuracy
+        return page + 'Trained model on: '+ symbol + '. Accuracy: '+ accuracy
 
 @app.route('/fetch/<symbol>')
 def fetch(symbol):
@@ -40,7 +51,7 @@ def fetch(symbol):
     df = getData(symbol)
     if df.empty:
         msg = "Invalid ticker: "+symbol
-        return msg
+        return page + msg
     else:
         try:
             model = joblib.load("models/"+symbol+"-model.pkl") # Load "model.pkl"
@@ -54,11 +65,13 @@ def fetch(symbol):
                 {"Tomorrows Close" :pred[1]}
             ]
 
-            return jsonify(data) 
+            data = '<h5>'+symbol+'</h5>Todays Close: '+str(pred[0])+'</br>Tomorrows Close: '+ str(pred[1])
+
+            return page + str(data)
         except:
             print ('Train the model first')
             print(traceback.format_exc())
-            return ('Train the model first. No model here to use')
+            return page + 'Train the model first. No model here to use'
             # return jsonify({'trace': traceback.format_exc()})
     
 
