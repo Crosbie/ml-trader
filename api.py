@@ -5,14 +5,61 @@ import joblib
 import traceback
 import pandas as pd
 import numpy as np
-from app import build_dataFrame
+from app import build_dataFrame, train_model
+
+latest_preds = {}
 
 # Your API definition
 app = Flask(__name__)
 
 @app.route('/')
 def hello():
-    return "Hello World!"
+    page = '''<div style="font-family:verdana;background:#cdcdcd;border-radius:20px;padding:150px;margin:20px">
+        <h2>Call <a href="/train/AAPL">/train/(symbol)</a> to train a new model, takes <40sec</h2>
+        <h2>Call <a href="/fetch/AAPL">/fetch/(symbol)</a> to predict using model</h2>
+    '''
+    return page
+
+
+@app.route('/train/<symbol>')
+def train(symbol):
+
+    df = getData(symbol)
+    if df.empty:
+        msg = "Invalid ticker: "+symbol
+        return msg
+    else:
+        accuracy, model = train_model(symbol)
+        accuracy = round(accuracy, 2)
+        accuracy = str(accuracy) + '%'
+        return 'Trained model on: '+ symbol + '. Accuracy: '+ accuracy
+
+@app.route('/fetch/<symbol>')
+def fetch(symbol):
+
+    df = getData(symbol)
+    if df.empty:
+        msg = "Invalid ticker: "+symbol
+        return msg
+    else:
+        try:
+            model = joblib.load("models/"+symbol+"-model.pkl") # Load "model.pkl"
+            df = getData(symbol).tail(2)
+            df = df.drop('Next Close',axis=1)
+            pred = model.predict(df)
+
+            data = {}
+            data[symbol] = [
+                {"Todays Close": pred[0]},
+                {"Tomorrows Close" :pred[1]}
+            ]
+
+            return jsonify(data) 
+        except:
+            print ('Train the model first')
+            print(traceback.format_exc())
+            return ('Train the model first. No model here to use')
+            # return jsonify({'trace': traceback.format_exc()})
     
 
 @app.route('/predict/<int:index>', methods=['GET'])

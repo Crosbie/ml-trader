@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 
 # logging.basicConfig(format="{asctime} - {levelname} - {message}", style="{",level=logging.INFO)
 logging.basicConfig(format="{message}", style="{",level=logging.INFO)
+logging.info('%s before you %s', 'Look', 'leap!')
 
 # Load Env vars
 load_dotenv()
@@ -83,6 +84,53 @@ def build_dataFrame(fresh_df):
 
 
 df = build_dataFrame(df)
+
+
+
+def train_model(symbol):
+    logging.info('Training model for %s',symbol)
+    training_df = pd.DataFrame()
+    training_df = training_df.ta.ticker(symbol, period="max", interval="1d")
+    training_df = build_dataFrame(training_df)
+
+    training_df=training_df.fillna(training_df.mean())
+
+    X = training_df.drop('Next Close',axis=1)
+    y = training_df['Next Close']
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
+
+    model = RandomForestRegressor(n_estimators = 1000, random_state = 42)
+    model.fit(X_train, y_train)
+
+    # store model
+    name = symbol + '-model.pkl'
+    joblib.dump(model, 'models/'+name)
+
+    y_pred = model.predict(X_test)
+
+    result=pd.DataFrame({'Actual':y_test, 'Predicted':y_pred})
+
+
+    # print('Mean Absolute Error:', metrics.mean_absolute_error(y_test, y_pred))
+    # print('Mean Squared Error:', metrics.mean_squared_error(y_test, y_pred))
+    # print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+    # Mean Absolute Error: 1993.2901175839186 # <20%
+
+    # Calculate the absolute errors
+    errors = abs(y_pred - y_test)
+    # Print out the mean absolute error (mae)
+    # print('Mean Absolute Error:', round(np.mean(errors), 2), 'degrees.')
+
+    # Calculate mean absolute percentage error (MAPE)
+    mape = 100 * (errors / y_test)
+    # Calculate and display accuracy
+    accuracy = 100 - np.mean(mape)
+    print('Accuracy:', round(accuracy, 2), '%.')
+    result.sort_index(inplace=True)
+    
+    return accuracy, model
+
 
 
 # INFERENCE
