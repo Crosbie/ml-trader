@@ -1,4 +1,5 @@
 # Dependencies
+import os
 from flask import Flask, request, jsonify
 import joblib
 import traceback
@@ -8,6 +9,11 @@ from app import build_dataFrame
 
 # Your API definition
 app = Flask(__name__)
+
+@app.route('/')
+def hello():
+    return "Hello World!"
+    
 
 @app.route('/predict/<int:index>', methods=['GET'])
 def predict(index):
@@ -51,14 +57,14 @@ def getData(SYMBOL):
     return df
 
 if __name__ == '__main__':
-    try:
-        port = int(sys.argv[1]) # This is for a command-line input
-    except:
-        port = 12345 # If you don't provide any port the port will be set to 12345
+    port = os.environ.get('FLASK_PORT') or 8080
+    port = int(port)
 
     model = joblib.load("models/AAPL-model.pkl") # Load "model.pkl"
     print ('Model loaded')
     # model_columns = joblib.load("model_columns.pkl") # Load "model_columns.pkl"
     print ('Model columns loaded')
 
-    app.run(port=port, debug=True)
+    app.run(port=port,host='0.0.0.0')
+
+    # app.run(port=port, debug=True)
