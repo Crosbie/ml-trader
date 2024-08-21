@@ -24,23 +24,29 @@ def predict(index):
             # query = pd.get_dummies(pd.DataFrame(json_))
             # query = query.reindex(columns=model_columns, fill_value=0)
 
-            today_df = getData('AAPL').tail(2)
-            today_df = today_df.drop('Next Close',axis=1)
-            print(today_df)
+            AAPL_df = getData('AAPL').tail(2)
+            AAPL_df = AAPL_df.drop('Next Close',axis=1)
+
+            GOLD_df = getData('AAPL').tail(2)
+            GOLD_df = GOLD_df.drop('Next Close',axis=1)
+            
 
             # prediction = list(model.predict(query))
 
-            pred = model.predict(today_df)
+            pred1 = model1.predict(AAPL_df)
+            pred2 = model2.predict(GOLD_df)
 
-            msg = "AAPL: Todays Close prediction"
+            msg1 = "AAPL: Todays Close prediction"
+            msg2 = "GOLD: Todays Close prediction"
 
             if index is None:
                 index = 1
 
             if index == 1:
-                msg = "AAPL: Tomorrows Close prediction"
+                msg1 = "AAPL: Tomorrows Close prediction"
+                msg2 = "GOLD: Tomorrows Close prediction"
 
-            return jsonify({msg: str(pred[index])})
+            return jsonify({msg1: str(pred1[index],msg2: str(pred2[index])})
             
 
         except:
@@ -60,7 +66,8 @@ if __name__ == '__main__':
     port = os.environ.get('FLASK_PORT') or 8080
     port = int(port)
 
-    model = joblib.load("models/AAPL-model.pkl") # Load "model.pkl"
+    model1 = joblib.load("models/AAPL-model.pkl") # Load "model.pkl"
+    model2 = joblib.load("models/GC=F-model.pkl") # Load "model.pkl"
     print ('Model loaded')
     # model_columns = joblib.load("model_columns.pkl") # Load "model_columns.pkl"
     print ('Model columns loaded')
