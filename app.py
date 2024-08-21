@@ -90,7 +90,7 @@ df = build_dataFrame(df)
 def train_model(symbol):
     logging.info('Training model for %s',symbol)
     training_df = pd.DataFrame()
-    training_df = training_df.ta.ticker(symbol, period="max", interval="1d")
+    training_df = training_df.ta.ticker(symbol, period="5y", interval="1d")
     training_df = build_dataFrame(training_df)
 
     training_df=training_df.fillna(training_df.mean())
