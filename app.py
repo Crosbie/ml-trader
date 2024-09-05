@@ -111,7 +111,7 @@ def train_model(symbol,period):
 
     # store model
     name = symbol + '-model.pkl'
-    # joblib.dump(model, 'models/'+name)
+    joblib.dump(model, 'models/'+name)
 
     y_pred = model.predict(X_test)
 

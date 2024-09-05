@@ -141,7 +141,7 @@ def train(symbol):
 
         return page + msg
     else:
-        accuracy, model = train_model(symbol)
+        accuracy, model = train_model(symbol,"5y")
         accuracy = round(accuracy, 2)
         accuracy = str(accuracy) + '%'
         return page + 'Trained model on: '+ symbol + '. Accuracy: '+ accuracy
