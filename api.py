@@ -24,6 +24,107 @@ def hello():
     return page
 
 
+# =============================
+# JSON Routes
+# =============================
+
+@app.route('/json/models')
+def json_models():
+
+    filenames = next(os.walk('models/'), (None, None, []))[2]  # [] if no file
+    data = {
+        "msg":"ok",
+        "files": filenames
+    }
+    return data
+
+@app.route('/json/train/<symbol>/<period>')
+def json_train(symbol,period):
+
+    df = getData(symbol)
+    if df.empty:
+        msg = {"msg":"Invalid ticker",
+               "symbol":symbol}
+        return msg
+    else:
+        accuracy, model = train_model(symbol,period)
+        accuracy = round(accuracy, 2)
+        accuracy = str(accuracy) + '%'
+        msg = {"msg":"ok",
+               "symbol":symbol,
+               "period":period,
+               "accuracy":accuracy
+               }
+        return msg
+
+
+@app.route('/json/fetch/<symbol>')
+def json_fetch(symbol):
+
+    df = getData(symbol)
+    if df.empty:
+        msg = {"msg":"Invalid ticker",
+               "symbol":symbol
+        }
+        return msg
+    else:
+        try:
+            model = joblib.load("models/"+symbol+"-model.pkl") # Load "model.pkl"
+            df = getData(symbol).tail(2)
+            df = df.drop('Next Close',axis=1)
+            pred = model.predict(df)
+
+
+            yesterdayOpen = df.iloc[0]['Open']
+            yesterdayClose = df.iloc[0]['Close']
+
+            todayClose = round(df.iloc[1]['Close'],4)
+            todayOpen = round(df.iloc[1]['Open'],4)
+
+            todayDiff = pred[0] - yesterdayClose
+            tomorrowDiff = pred[1] - todayClose
+
+            todayDiff_pc = round((todayDiff/yesterdayClose)*100,2)
+            tomorrowDiff_pc = round((tomorrowDiff/todayClose)*100,2)
+
+            msg = {
+                "msg":"ok",
+                "symbol": symbol,
+                "yesterdayOpen": yesterdayOpen,
+                "yesterdayClose": yesterdayClose,
+                "todayOpen": todayOpen,
+                "todayClosePred": round(pred[0],4),
+                "todayDiff": todayDiff,
+                "todayDiff_pc": todayDiff_pc,
+                "tomorrowOpen": todayClose,
+                "tommorrowClosePred": round(pred[1],4),
+                "tomorrowDiff": tomorrowDiff,
+                "tomorrowDiff_pc": tomorrowDiff_pc
+            }
+
+
+            return msg
+        except:
+
+            # print ('Train the model first')
+            print(traceback.format_exc())
+
+            msg = {
+                "msg":"Error reading model",
+                "symbol": symbol,
+                "trace": traceback.format_exc()
+            }
+            return msg
+            # return jsonify({'trace': traceback.format_exc()})
+
+
+
+
+
+# =============================
+# Web Page Routes
+# =============================
+
 @app.route('/models')
 def models():
 
@@ -77,11 +178,10 @@ def fetch(symbol):
             todayDiff_pc = round((todayDiff/yesterdayClose)*100,2)
             tomorrowDiff_pc = round((tomorrowDiff/todayClose)*100,2)
 
-            x = ' '.join(("multiline String ",
-            "Python Language",
-            "Welcome to GFG"))
 
             data = ' '.join(('<h4>'+symbol+'</h4>',
+            '<h5>Yesterday Close:</h5>',
+             str(yesterdayClose),
             '<h5>Todays Open:</h5>',
              str(todayOpen),
             '<h5>Todays Close (pred):</h5>',
@@ -104,48 +204,6 @@ def fetch(symbol):
             return page + 'Train the model first. No model here to use'
             # return jsonify({'trace': traceback.format_exc()})
     
-
-@app.route('/predict/<int:index>', methods=['GET'])
-def predict(index):
-    if model1:
-        try:
-            # json_ = request.json
-            # print(json_)
-            # query = pd.get_dummies(pd.DataFrame(json_))
-            # query = query.reindex(columns=model_columns, fill_value=0)
-
-            AAPL_df = getData('AAPL').tail(2)
-            AAPL_df = AAPL_df.drop('Next Close',axis=1)
-
-            GOLD_df = getData('GC=F').tail(2)
-            GOLD_df = GOLD_df.drop('Next Close',axis=1)
-            
-
-            # prediction = list(model.predict(query))
-
-            pred1 = model1.predict(AAPL_df)
-            pred2 = model2.predict(GOLD_df)
-
-            msg1 = "AAPL: Todays Close prediction"
-            msg2 = "GOLD: Todays Close prediction"
-
-            if index is None:
-                index = 1
-
-            if index == 1:
-                msg1 = "AAPL: Tomorrows Close prediction"
-                msg2 = "GOLD: Tomorrows Close prediction"
-
-            return jsonify({msg1: str(pred1[index]), msg2: str(pred2[index])})
-            
-
-        except:
-
-            return jsonify({'trace': traceback.format_exc()})
-    else:
-        print ('Train the model first')
-        return ('No model here to use')
-    
 def getData(SYMBOL):
     df = pd.DataFrame() # Empty DataFrame
     df = df.ta.ticker(SYMBOL, period="1y", interval="1d")
@@ -155,12 +213,6 @@ def getData(SYMBOL):
 if __name__ == '__main__':
     port = os.environ.get('FLASK_PORT') or 8080
     port = int(port)
-
-    model1 = joblib.load("models/AAPL-model.pkl") # Load "model.pkl"
-    model2 = joblib.load("models/GC=F-model.pkl") # Load "model.pkl"
-    print ('Model loaded')
-    # model_columns = joblib.load("model_columns.pkl") # Load "model_columns.pkl"
-    print ('Model columns loaded')
 
     app.run(port=port,host='0.0.0.0')
 

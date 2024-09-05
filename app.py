@@ -36,8 +36,8 @@ ALPACA_CREDS = {
     "PAPER": True
 }
 
-symbols = ['AAPL','^GSPC','BTC-USD', 'ETH-USD', '^GDAXI','GC=F']
-SYMBOL = symbols[5]
+symbols = ['AAPL','^GSPC','BTC-USD', 'ETH-USD', '^GDAXI','GC=F','EURUSD=X']
+SYMBOL = symbols[2]
 print('Symbol:',SYMBOL)
 
 # Load data
@@ -86,11 +86,17 @@ def build_dataFrame(fresh_df):
 df = build_dataFrame(df)
 
 
+# =======================
+# Train Model
+# =======================
 
-def train_model(symbol):
-    logging.info('Training model for %s',symbol)
+def train_model(symbol,period):
+    if period is None:
+        period = "5y"
+
+    logging.info('Training model for %s over %s',symbol, period)
     training_df = pd.DataFrame()
-    training_df = training_df.ta.ticker(symbol, period="5y", interval="1d")
+    training_df = training_df.ta.ticker(symbol, period=period, interval="1d")
     training_df = build_dataFrame(training_df)
 
     training_df=training_df.fillna(training_df.mean())
@@ -105,7 +111,7 @@ def train_model(symbol):
 
     # store model
     name = symbol + '-model.pkl'
-    joblib.dump(model, 'models/'+name)
+    # joblib.dump(model, 'models/'+name)
 
     y_pred = model.predict(X_test)
 
@@ -226,16 +232,31 @@ from lumibot.strategies.strategy import Strategy
 from lumibot.traders import Trader
 from datetime import datetime
 
-class MLTrader(Strategy): 
+class DittoBot(Strategy): 
     def initialize(self, symbol:str=SYMBOL, cash_at_risk:float=.5): 
         self.symbol = symbol
-        self.sleeptime = "1H"
+        self.sleeptime = "24H"
         self.last_trade = None 
         self.cash_at_risk = cash_at_risk
         self.threshold = 1
         self.trail_percent = 2.5
         self.minutes_before_closing = 5
         self.period = '1y'
+        # self.set_market("24/7")
+
+        # base = "BTC"
+        # quote = "USDT"
+        # last_price = self.get_last_price(base, quote=quote)
+        # self.log_message(f"Last price for BTC/USDT is {last_price}")
+
+
+        # default for stock/gold/crypto
+        # threshold = 1
+        # trail_percent = 2.5
+
+        # default for BTC
+        # threshold = 0.1
+        # trail_percent = 0.5
 
         if self.is_backtesting:
             print("Running in backtesting mode")
@@ -244,8 +265,12 @@ class MLTrader(Strategy):
 
     def position_sizing(self): 
         cash = self.get_cash() 
-        last_price = self.get_last_price(self.symbol)
-        quantity = round(cash * self.cash_at_risk / last_price,0)
+        last_price = self.get_last_price(self.symbol) or 50000
+        print('Last_price',last_price)
+        print('cash',cash)
+        print('CAR',self.cash_at_risk)
+        # quantity = round(cash * self.cash_at_risk / last_price,0)
+        quantity = 1
         return cash, last_price, quantity
 
     def get_predicted_close(self):
@@ -334,13 +359,11 @@ class MLTrader(Strategy):
 start_date = datetime(2020,8,3)
 end_date = datetime(2024,8,19) 
 broker = Alpaca(ALPACA_CREDS) 
-strategy = MLTrader(name='mlstrat', broker=broker, 
-                    parameters={"symbol":SYMBOL, 
+strategy = DittoBot(name='DittoBot', broker=broker, 
+                    parameters={"symbol":'BTC/USD', 
                                 "cash_at_risk":.8})
 
-
-
-
+# print('here')
 if __name__ == '__main__':
     print(os.environ.get('APP_FILE'))
     if os.environ.get('APP_FILE'):
@@ -348,7 +371,10 @@ if __name__ == '__main__':
         trader.add_strategy(strategy)
         trader.run_all()
     else:
-        # print('helo')
+
+        # trader = Trader()
+        # trader.add_strategy(strategy)
+        # trader.run_all()
         strategy.backtest(
             YahooDataBacktesting, 
             start_date, 
