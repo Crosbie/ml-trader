@@ -97,7 +97,7 @@ def json_fetch(symbol):
                 "todayDiff": todayDiff,
                 "todayDiff_pc": todayDiff_pc,
                 "tomorrowOpen": todayClose,
-                "tommorrowClosePred": round(pred[1],4),
+                "tomorrowClosePred": round(pred[1],4),
                 "tomorrowDiff": tomorrowDiff,
                 "tomorrowDiff_pc": tomorrowDiff_pc
             }
