@@ -101,6 +101,8 @@ def train_model(symbol,period):
 
     training_df=training_df.fillna(training_df.mean())
 
+    # print(training_df);
+
     X = training_df.drop('Next Close',axis=1)
     y = training_df['Next Close']
 

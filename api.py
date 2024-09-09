@@ -72,6 +72,9 @@ def json_fetch(symbol):
             model = joblib.load("models/"+symbol+"-model.pkl") # Load "model.pkl"
             df = getData(symbol).tail(2)
             df = df.drop('Next Close',axis=1)
+
+            df =df[["Open","High","Low","Close","Volume","PCTRET_1","up","INERTIA_20_14","RSI_14","VWAP_D","CDL_DOJI_10_0.1","SMA 10","SMA 50","SMA 200","EMA 20","GoldenCross","OBV"]]
+
             pred = model.predict(df)
 
 
