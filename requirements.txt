@@ -158,6 +158,8 @@ kiwisolver==1.4.5
     # via matplotlib
 korean-lunar-calendar==0.3.1
     # via exchange-calendars
+libta-lib==0.4.0rc2
+    # via -r requirements.in
 lumibot==3.6.16
     # via -r requirements.in
 lumiwealth-tradier==0.1.9
@@ -214,7 +216,6 @@ numpy==1.26.4
     #   scikit-learn
     #   scipy
     #   seaborn
-    #   ta-lib
     #   yfinance
 packaging==24.1
     # via
@@ -360,8 +361,6 @@ sseclient-py==1.8.0
     # via alpaca-py
 stack-data==0.6.3
     # via ipython
-ta-lib==0.4.32
-    # via -r requirements.in
 tabulate==0.9.0
     # via
     #   lumibot
