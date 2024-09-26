@@ -12,5 +12,4 @@ pandas
 pandas_ta
 python-dotenv
 scikit-learn
-libta-lib
 yfinance==0.2.40
