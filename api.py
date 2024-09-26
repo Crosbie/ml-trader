@@ -4,8 +4,9 @@ from flask import Flask, request, jsonify
 import joblib
 import traceback
 import pandas as pd
+import pandas_ta as ta
 import numpy as np
-from app import build_dataFrame, train_model
+from app import build_dataFrame1, build_dataFrame2, train_model
 
 latest_preds = {}
 
@@ -41,13 +42,13 @@ def json_models():
 @app.route('/json/train/<symbol>/<period>')
 def json_train(symbol,period):
 
-    df = getData(symbol)
-    if df.empty:
+    df1, df2 = getData(symbol)
+    if df1.empty:
         msg = {"msg":"Invalid ticker",
                "symbol":symbol}
         return msg
     else:
-        accuracy, model = train_model(symbol,period)
+        accuracy, model1, model2 = train_model(symbol,period)
         accuracy = round(accuracy, 2)
         accuracy = str(accuracy) + '%'
         msg = {"msg":"ok",
@@ -61,28 +62,41 @@ def json_train(symbol,period):
 @app.route('/json/fetch/<symbol>')
 def json_fetch(symbol):
 
-    df = getData(symbol)
-    if df.empty:
+    df1, df2 = getData(symbol)
+    if df1.empty:
         msg = {"msg":"Invalid ticker",
                "symbol":symbol
         }
         return msg
     else:
         try:
-            model = joblib.load("models/"+symbol+"-model.pkl") # Load "model.pkl"
-            df = getData(symbol).tail(2)
-            df = df.drop('Next Close',axis=1)
+            model1 = joblib.load("models/"+symbol+"-model.pkl") # Load "model.pkl"
+            model2 = joblib.load("models/"+symbol+"-2-model.pkl") # Load "model.pkl"
+            df1, df2 = getData(symbol)
+            df1 = df1.tail(2)
+            df1 = df1.drop('Next Close',axis=1)
+            df1 = df1.drop('Next Dir',axis=1)
+            pred = model1.predict(df1)
 
-            df =df[["Open","High","Low","Close","Volume","PCTRET_1","up","INERTIA_20_14","RSI_14","VWAP_D","CDL_DOJI_10_0.1","SMA 10","SMA 50","SMA 200","EMA 20","GoldenCross","OBV"]]
+            df2 = df2.tail(2)
+            df2 = df2.drop('Next Close',axis=1)
+            df2 = df2.drop('Next Dir',axis=1)
+            pred2 = model2.predict(df2)
+            probability = model2.predict_proba(df2)
+            probability2 = pd.Series(probability[:,1], index=df2.index)
 
-            pred = model.predict(df)
+            confidence = probability.max(axis=1)
+            print('Max today')
+            print(confidence)
+            result = map(lambda x: round(x*100,1), confidence)
+            result = list(result)
+            print(result)
 
+            yesterdayOpen = df1.iloc[0]['Open']
+            yesterdayClose = df1.iloc[0]['Close']
 
-            yesterdayOpen = df.iloc[0]['Open']
-            yesterdayClose = df.iloc[0]['Close']
-
-            todayClose = round(df.iloc[1]['Close'],4)
-            todayOpen = round(df.iloc[1]['Open'],4)
+            todayClose = round(df1.iloc[1]['Close'],4)
+            todayOpen = round(df1.iloc[1]['Open'],4)
 
             todayDiff = pred[0] - yesterdayClose
             tomorrowDiff = pred[1] - todayClose
@@ -99,10 +113,14 @@ def json_fetch(symbol):
                 "todayClosePred": round(pred[0],4),
                 "todayDiff": todayDiff,
                 "todayDiff_pc": todayDiff_pc,
+                "todayDirection": pred2[0],
+                "todayDirectionConfidence": result[0],
                 "tomorrowOpen": todayClose,
                 "tomorrowClosePred": round(pred[1],4),
                 "tomorrowDiff": tomorrowDiff,
-                "tomorrowDiff_pc": tomorrowDiff_pc
+                "tomorrowDiff_pc": tomorrowDiff_pc,
+                "tomorrowDirection": pred2[1],
+                "tomorrowDirectionConfidence": result[1]
             }
 
 
@@ -138,13 +156,13 @@ def models():
 @app.route('/train/<symbol>')
 def train(symbol):
 
-    df = getData(symbol)
-    if df.empty:
+    df1, df2 = getData(symbol)
+    if df1.empty:
         msg = "Invalid ticker: "+symbol
 
         return page + msg
     else:
-        accuracy, model = train_model(symbol,"5y")
+        accuracy, model1, model2 = train_model(symbol,"5y")
         accuracy = round(accuracy, 2)
         accuracy = str(accuracy) + '%'
         return page + 'Trained model on: '+ symbol + '. Accuracy: '+ accuracy
@@ -152,28 +170,44 @@ def train(symbol):
 @app.route('/fetch/<symbol>')
 def fetch(symbol):
 
-    df = getData(symbol)
-    if df.empty:
+    df1, df2 = getData(symbol)
+    if df1.empty:
         msg = "Invalid ticker: "+symbol
         return page + msg
     else:
         try:
-            model = joblib.load("models/"+symbol+"-model.pkl") # Load "model.pkl"
-            df = getData(symbol).tail(2)
-            df = df.drop('Next Close',axis=1)
-            pred = model.predict(df)
+            model1 = joblib.load("models/"+symbol+"-model.pkl") # Load "model.pkl"
+            model2 = joblib.load("models/"+symbol+"-2-model.pkl") # Load "model.pkl"
+            df1, df2 = getData(symbol)
+            df1 = df1.tail(2)
+            df1 = df1.drop('Next Close',axis=1)
+            df1 = df1.drop('Next Dir',axis=1)
+            pred = model1.predict(df1)
 
-            # data = {}
-            # data[symbol] = [
-            #     {"Todays Close": pred[0]},
-            #     {"Tomorrows Close" :pred[1]}
-            # ]
+            df2 = df2.tail(2)
+            df2 = df2.drop('Next Close',axis=1)
+            df2 = df2.drop('Next Dir',axis=1)
+            pred2 = model2.predict(df2)
+            probability = model2.predict_proba(df2)
+            probability2 = pd.Series(probability[:,1], index=df2.index)
 
-            yesterdayOpen = df['Open'][0]
-            yesterdayClose = df['Close'][0]
+            print(probability2)
 
-            todayClose = round(df['Close'][1],4)
-            todayOpen = round(df['Open'][1],4)
+            print(probability)
+
+            
+            confidence = probability.max(axis=1)
+            print('Max today')
+            print(confidence)
+            result = map(lambda x: round(x*100,1), confidence)
+            result = list(result)
+            print(result)
+
+            yesterdayOpen = df1['Open'][0]
+            yesterdayClose = df1['Close'][0]
+
+            todayClose = round(df1['Close'][1],4)
+            todayOpen = round(df1['Open'][1],4)
 
             todayDiff = pred[0] - yesterdayClose
             tomorrowDiff = pred[1] - todayClose
@@ -183,6 +217,10 @@ def fetch(symbol):
 
 
             data = ' '.join(('<h4>'+symbol+'</h4>',
+            '<h5>Direction today[0]:</h5>',
+             str(pred2[0]) + ' (confidence: ' + str(result[0]) + '%)',
+             '<h5>Direction tomorrow[1]:</h5>',
+             str(pred2[1]) + ' (confidence: ' + str(result[1]) + '%)',
             '<h5>Yesterday Close:</h5>',
              str(yesterdayClose),
             '<h5>Todays Open:</h5>',
@@ -208,10 +246,14 @@ def fetch(symbol):
             # return jsonify({'trace': traceback.format_exc()})
     
 def getData(SYMBOL):
-    df = pd.DataFrame() # Empty DataFrame
-    df = df.ta.ticker(SYMBOL, period="1y", interval="1d")
-    df = build_dataFrame(df)
-    return df
+    df1 = pd.DataFrame() # Empty DataFrame
+    df1 = df1.ta.ticker(SYMBOL, period="1y", interval="1d")
+    df1 = build_dataFrame1(df1)
+
+    df2 = pd.DataFrame() # Empty DataFrame
+    df2 = df2.ta.ticker(SYMBOL, period="1y", interval="1d")
+    df2 = build_dataFrame2(df2)
+    return df1, df2
 
 if __name__ == '__main__':
     port = os.environ.get('FLASK_PORT') or 8080

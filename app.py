@@ -4,8 +4,8 @@ import pandas_ta as ta
 import yfinance as yf
 import joblib
 import logging
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split, RandomizedSearchCV, GridSearchCV
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn import metrics
 from dotenv import load_dotenv
 import numpy as np
@@ -36,8 +36,8 @@ ALPACA_CREDS = {
     "PAPER": True
 }
 
-symbols = ['AAPL','^GSPC','BTC-USD', 'ETH-USD', '^GDAXI','GC=F','EURUSD=X']
-SYMBOL = symbols[2]
+symbols = ['AAPL','^GSPC','BTC-USD', 'ETH-USD', '^GDAXI','GC=F','EURUSD=X','USDJPY=X','NVDA']
+SYMBOL = symbols[6]
 print('Symbol:',SYMBOL)
 
 # Load data
@@ -53,7 +53,7 @@ df = df.ta.ticker(SYMBOL, period="5y", interval="1d")
 
 
 
-def build_dataFrame(fresh_df):
+def build_dataFrame1(fresh_df):
     # Clean df
     fresh_df.drop('Stock Splits', axis=1, inplace=True)
     fresh_df.drop('Dividends', axis=1, inplace=True)
@@ -68,12 +68,88 @@ def build_dataFrame(fresh_df):
     lastClose = lastCloseDf.iloc[0]['Close']
 
     fresh_df['Next Close'] = fresh_df['Close'].shift(-1, fill_value=lastClose)
+    fresh_df['Next_Dir'] = fresh_df['Next Close'] - fresh_df['Close']
+    fresh_df.loc[fresh_df['Next_Dir'] > 0, 'Next Dir'] = 1
+    fresh_df.loc[fresh_df['Next_Dir'] <= 0, 'Next Dir'] = 0
+
+    # fresh_df['Next Dir'] = np.where(fresh_df['Next_Dir'] > 0,'long', 'short')
+    # fresh_df['Next Dir'] = fresh_df['Next_Dir'] > 0
+
+
+    fresh_df.drop('Next_Dir', axis=1, inplace=True)
+    
 
     fresh_df.ta.inertia(append=True)
     fresh_df.ta.rsi(append=True)
+    fresh_df.ta.ao(append=True)
+    fresh_df.ta.macd(append=True)
+    fresh_df.ta.mad(append=True)
+    fresh_df.ta.adx(append=True)
+    fresh_df.ta.ttm_trend(append=True)
+    
     fresh_df.ta.vwap(append=True)
-    fresh_df.ta.cdl_pattern(name=["doji"],append=True)
-    fresh_df['SMA 10'] = fresh_df.ta.sma(10)
+
+    # fresh_df['SMA 10'] = fresh_df.ta.sma(10)
+    fresh_df['SMA 50'] = fresh_df.ta.sma(50)
+    fresh_df['SMA 200'] = fresh_df.ta.sma(200)
+    fresh_df['EMA 20'] = fresh_df.ta.ema(20)
+    fresh_df['GoldenCross'] = (fresh_df['SMA 50'] > fresh_df['SMA 200'])
+    fresh_df.ta.obv(append=True)
+
+    return fresh_df
+
+def build_dataFrame2(fresh_df):
+    # Clean df
+    fresh_df.drop('Stock Splits', axis=1, inplace=True)
+    fresh_df.drop('Dividends', axis=1, inplace=True)
+
+    # Calculate Returns and append to the df DataFrame
+    fresh_df.ta.percent_return(cumulative=False, append=True)
+    fresh_df["up"] = (fresh_df.ta.percent_return(cumulative=False) > 0)
+
+
+    #  Next close
+    lastCloseDf =fresh_df.tail(1)
+    lastClose = lastCloseDf.iloc[0]['Close']
+
+    fresh_df['Next Close'] = fresh_df['Close'].shift(-1, fill_value=lastClose)
+    fresh_df['Next_Dir'] = fresh_df['Next Close'] - fresh_df['Close']
+    fresh_df.loc[fresh_df['Next_Dir'] > 0, 'Next Dir'] = 1
+    fresh_df.loc[fresh_df['Next_Dir'] <= 0, 'Next Dir'] = 0
+
+    # fresh_df['Next Dir'] = np.where(fresh_df['Next_Dir'] > 0,'long', 'short')
+    # fresh_df['Next Dir'] = fresh_df['Next_Dir'] > 0
+
+
+    fresh_df.drop('Next_Dir', axis=1, inplace=True)
+    
+
+    fresh_df.ta.inertia(append=True)
+    fresh_df.ta.rsi(append=True)
+    fresh_df.ta.ao(append=True)
+    fresh_df.ta.macd(append=True)
+    fresh_df.ta.mad(append=True)
+    fresh_df.ta.adx(append=True)
+    fresh_df.ta.ttm_trend(append=True)
+    
+    fresh_df.ta.vwap(append=True)
+    fresh_df.ta.cdl_pattern(name="all",append=True)
+
+    # custom trends
+    weekly_mean = fresh_df.rolling(7).mean()
+    quarterly_mean = fresh_df.rolling(90).mean()
+    annual_mean = fresh_df.rolling(365).mean()
+    weekly_trend = fresh_df.shift(1).rolling(7).mean()["Next Dir"]
+
+    # fresh_df["weekly_mean"] = weekly_mean["Close"] / fresh_df["Close"]
+    # fresh_df["quarterly_mean"] = quarterly_mean["Close"] / fresh_df["Close"]
+    # fresh_df["annual_mean"] = annual_mean["Close"] / fresh_df["Close"]
+
+    # fresh_df["annual_weekly_mean"] = fresh_df["annual_mean"] / fresh_df["weekly_mean"]
+    # fresh_df["annual_quarterly_mean"] = fresh_df["annual_mean"] / fresh_df["quarterly_mean"]
+    fresh_df["weekly_trend"] = weekly_trend
+
+    # fresh_df['SMA 10'] = fresh_df.ta.sma(10)
     fresh_df['SMA 50'] = fresh_df.ta.sma(50)
     fresh_df['SMA 200'] = fresh_df.ta.sma(200)
     fresh_df['EMA 20'] = fresh_df.ta.ema(20)
@@ -83,11 +159,13 @@ def build_dataFrame(fresh_df):
     return fresh_df
 
 
-df = build_dataFrame(df)
+df = build_dataFrame1(df)
 
 
 # =======================
-# Train Model
+# Train Models
+# model 1 is price
+# model 2 is direction
 # =======================
 
 def train_model(symbol,period):
@@ -95,29 +173,79 @@ def train_model(symbol,period):
         period = "5y"
 
     logging.info('Training model for %s over %s',symbol, period)
-    training_df = pd.DataFrame()
-    training_df = training_df.ta.ticker(symbol, period=period, interval="1d")
-    training_df = build_dataFrame(training_df)
+    training_df1 = pd.DataFrame()
+    training_df1 = training_df1.ta.ticker(symbol, period=period, interval="1d")
+    training_df1 = build_dataFrame1(training_df1)
 
-    training_df=training_df.fillna(training_df.mean())
+    training_df2 = pd.DataFrame()
+    training_df2 = training_df2.ta.ticker(symbol, period=period, interval="1d")
+    training_df2 = build_dataFrame2(training_df2)
 
-    # print(training_df);
+    training_df1=training_df1.fillna(training_df1.mean())
+    training_df2=training_df2.fillna(training_df2.mean())
 
-    X = training_df.drop('Next Close',axis=1)
-    y = training_df['Next Close']
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
+    X1 = training_df1.drop('Next Close',axis=1)
+    y1 = training_df1['Next Close']
+    X1 = X1.drop('Next Dir',axis=1)
 
-    model = RandomForestRegressor(n_estimators = 1000, random_state = 42)
-    model.fit(X_train, y_train)
+    X2 = training_df2.drop('Next Close',axis=1)
+    y2 = training_df2['Next Dir']
+    X2 = X2.drop('Next Dir',axis=1)
+
+    X1_train, X1_test, y1_train, y1_test = train_test_split(X1, y1, test_size=0.2, random_state=0)
+    X2_train, X2_test, y2_train, y2_test = train_test_split(X2, y2, test_size=0.2, random_state=0, stratify=y2)
+
+    # print(X1.tail(5))
+    model1 = RandomForestRegressor(n_estimators = 2000, random_state = 42, max_features=0.8)
+    model1.fit(X1_train, y1_train)
+
+    # model2 = RandomForestClassifier(n_estimators = 1400, random_state = 42, max_features=0.3)
+    model2 = RandomForestClassifier(n_estimators = 2200, min_samples_split=2, min_samples_leaf=4, max_depth=70, random_state = 42, max_features=0.8)
+    model2.fit(X2_train, y2_train)
+    prob = model2.predict_proba(X2_test)
+
+    y1_pred = model1.predict(X1_test)
+    y2_pred = model2.predict(X2_test)
+
+    # print('')
+    # print('prob',prob[-10:])
+    # print('y2_pred',y2_pred[-10:])
+
+
+    print('')
+    print('===============================')
+    print('          Performance          ',symbol);
+    print('===============================')
+    print('Model 1 R-score :', metrics.r2_score(y1_test, y1_pred))
+    print('Model 2 R-score :', metrics.r2_score(y2_test, y2_pred))
+    print('Model 2 Correct %: ', metrics.accuracy_score(y2_test, y2_pred, normalize=True)*100.0)
+    print('')
+    print('Matrix, True/False') 
+    print(metrics.confusion_matrix(y2_test, y2_pred,labels=[1, 0]))
+    accuracy = metrics.accuracy_score(y2_test, y2_pred)
+    # precision = metrics.precision_score(y2_test, y2_pred)
+    # recall = metrics.recall_score(y2_test, y2_pred)
+
+    # print("Accuracy:", accuracy)
+    # print("Precision:", precision)
+    # print("Recall:", recall)
+    print('===============================')
+    print('')
+
+    # hypertune(X1_train, y1_train,X1_test,y1_test)
+    # hypertune2(X2_train, y2_train,X2_test,y2_test)
+
 
     # store model
-    name = symbol + '-model.pkl'
-    joblib.dump(model, 'models/'+name)
+    name1 = symbol + '-model.pkl'
+    name2 = symbol + '-2-model.pkl'
+    joblib.dump(model1, 'models/'+name1)
+    joblib.dump(model2, 'models/'+name2)
 
-    y_pred = model.predict(X_test)
+    
 
-    result=pd.DataFrame({'Actual':y_test, 'Predicted':y_pred})
+    result=pd.DataFrame({'Actual':y1_test, 'Predicted':y1_pred})
 
 
     # print('Mean Absolute Error:', metrics.mean_absolute_error(y_test, y_pred))
@@ -126,101 +254,137 @@ def train_model(symbol,period):
     # Mean Absolute Error: 1993.2901175839186 # <20%
 
     # Calculate the absolute errors
-    errors = abs(y_pred - y_test)
+    errors = abs(y2_pred - y2_test)
     # Print out the mean absolute error (mae)
     # print('Mean Absolute Error:', round(np.mean(errors), 2), 'degrees.')
-
+    # print('pred',y2_pred)
+    # print('target',y2_test)
+    # print('\n\nerrors',errors)
     # Calculate mean absolute percentage error (MAPE)
-    mape = 100 * (errors / y_test)
+    mape = 100 * (errors / y2_test)
+    mape = mape.fillna(0)
+    mape = mape.replace(np.inf, 100)
+    # print('mape',mape)
     # Calculate and display accuracy
     accuracy = 100 - np.mean(mape)
-    print('Accuracy:', round(accuracy, 2), '%.')
+    # print('Accuracy:', round(accuracy, 2), '%.')
     result.sort_index(inplace=True)
     
-    return accuracy, model
+    return accuracy, model1, model2
 
 
 
 # INFERENCE
 
-# remove object fields from df
-# df = df.select_dtypes(exclude=['object'])
 
-# change NAN with mean value
-df=df.fillna(df.mean())
-
-X = df.drop('Next Close',axis=1)
-y = df['Next Close']
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
-
-model = RandomForestRegressor(n_estimators = 1000, random_state = 42)
-model.fit(X_train, y_train)
-
-# store model
-name = SYMBOL + '-model.pkl'
-# joblib.dump(model, 'models/'+name)
-
-y_pred = model.predict(X_test)
-
-result=pd.DataFrame({'Actual':y_test, 'Predicted':y_pred})
+def evaluate(model, test_features, test_labels):
+    predictions = model.predict(test_features)
+    errors = abs(predictions - test_labels)
+    mape = 100 * (errors / test_labels)
+    mape = mape.fillna(0)
+    mape = mape.replace(np.inf, 100)
+    accuracy = 100 - np.mean(mape)
+    print('Model Performance')
+    print('Average Error: {:0.4f} degrees.'.format(np.mean(errors)))
+    print('Accuracy = {:0.2f}%.'.format(accuracy))
+    
+    return accuracy
 
 
-print('Mean Absolute Error:', metrics.mean_absolute_error(y_test, y_pred))
-print('Mean Squared Error:', metrics.mean_squared_error(y_test, y_pred))
-print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
-# Mean Absolute Error: 1993.2901175839186 # <20%
+def hypertune(x,y,xtest,ytest):
+    # Number of trees in random forest
+    n_estimators = [int(x) for x in np.linspace(start = 800, stop = 2200, num = 8)]
+    # Number of features to consider at every split
+    max_features = ['log2', 'sqrt',0.2,0.4,0.6,0.8]
+    # Maximum number of levels in tree
+    max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
+    max_depth.append(None)
+    # Minimum number of samples required to split a node
+    min_samples_split = [2, 5, 10]
+    # Minimum number of samples required at each leaf node
+    min_samples_leaf = [1, 2, 4]
+    # Method of selecting samples for training each tree
+    bootstrap = [True]
+    # Create the random grid
+    random_grid = {'n_estimators': n_estimators,
+                'max_features': max_features,
+                'max_depth': max_depth,
+                'min_samples_split': min_samples_split,
+                'min_samples_leaf': min_samples_leaf,
+                'bootstrap': bootstrap}
+    print(random_grid)
 
-# Calculate the absolute errors
-errors = abs(y_pred - y_test)
-# Print out the mean absolute error (mae)
-print('Mean Absolute Error:', round(np.mean(errors), 2), 'degrees.')
+    # Use the random grid to search for best hyperparameters
+    # First create the base model to tune
+    # rf = RandomForestRegressor()
+    rf = RandomForestRegressor()
+    # Random search of parameters, using 3 fold cross validation, 
+    # search across 100 different combinations, and use all available cores
+    rf_random = RandomizedSearchCV(estimator = rf, param_distributions = random_grid, n_iter = 200, cv = 3, random_state=42, n_jobs = -1)
+    # Fit the random search model
+    rf_random.fit(x, y)
 
-# Calculate mean absolute percentage error (MAPE)
-mape = 100 * (errors / y_test)
-# Calculate and display accuracy
-accuracy = 100 - np.mean(mape)
-print('Accuracy:', round(accuracy, 2), '%.')
-result.sort_index(inplace=True)
-# print(result.tail(5))
-tail = result.tail(155)
-# tail.plot(figsize=(10, 4))
+    # Look at parameters used by our current forest
+    print('Parameters currently in use:\n')
+    print(rf.get_params())
 
+    print('')
+    print('Best Params:')
+    print(rf_random.best_params_)
 
+    
+    base_model = RandomForestRegressor(n_estimators = 1400, random_state = 42, max_features=0.3)
+    base_model.fit(x, y)
+    base_accuracy = evaluate(base_model, xtest, ytest)
 
-# ====================
-# predict today/tomorrows close
-# ====================
+    best_random = rf_random.best_estimator_
+    random_accuracy = evaluate(best_random, xtest, ytest)
 
-# today = True
-# index = 0
-# today_df = df.tail(2)
-# today_df = today_df.drop('Next Close',axis=1)
-# print(today_df)
-
-# pred = model.predict(today_df)
-# print('tomorrows close prediction:', pred)
-
-# if today:
-#     print('getting todays close...')
-#     index = 0
-# else:
-#     print('getting tomorrows close...')
-#     index = 1
-
-# todayClose = today_df.iloc[index]['Close']
-# pred = pred[index]
-# print('Predicted Close',pred)
+    print('Improvement of {:0.2f}%.'.format( 100 * (random_accuracy - base_accuracy) / base_accuracy))
 
 
-# diff = pred - todayClose
-# diff_percent = (diff/todayClose)*100
-# print('Predicted %', round(diff_percent, 3))
+def hypertune2(x,y,xtest,ytest):
+    # Create the parameter grid based on the results of random search 
+    # param_grid = {
+    #     'bootstrap': [True],
+    #     'max_depth': [20, 70, 110],
+    #     'max_features': ['sqrt',0.2,0.8],
+    #     'min_samples_leaf': [4],
+    #     'min_samples_split': [2, 5, 10],
+    #     'n_estimators': [1400, 1600, 2200]
+    # }
+    param_grid = {
+        'bootstrap': [True],
+        'max_depth': [20, 70, 110],
+        'max_features': [0.8],
+        'min_samples_leaf': [4,6],
+        'min_samples_split': [10,20],
+        'n_estimators': [2000, 2200]
+    }
+    
 
+    # Create a based model
+    # rf = RandomForestRegressor()
+    rf = RandomForestClassifier()
+    # Instantiate the grid search model
+    grid_search = GridSearchCV(estimator = rf, param_grid = param_grid, cv = 3, n_jobs = -1)
+    # Fit the grid search to the data
+    grid_search.fit(x, y)
 
+    print('')
+    print('Best Params:')
+    print(grid_search.best_params_)
 
-# print Columns
-# print(df.columns)
+    
+    base_model = RandomForestClassifier(n_estimators = 2200, min_samples_split=2, min_samples_leaf=4, max_depth=70, bootstrap=True, random_state = 42, max_features=0.8)
+    base_model.fit(x, y)
+    base_accuracy = evaluate(base_model, xtest, ytest)
+
+    best_grid = grid_search.best_estimator_
+    grid_accuracy = evaluate(best_grid, xtest, ytest)
+
+    print('Improvement of {:0.2f}%.'.format( 100 * (grid_accuracy - base_accuracy) / base_accuracy))
+
 
 
 # ==================================
@@ -244,7 +408,7 @@ class DittoBot(Strategy):
         self.trail_percent = 2.5
         self.minutes_before_closing = 5
         self.period = '1y'
-        # self.set_market("24/7")
+        self.set_market("24/7")
 
         # base = "BTC"
         # quote = "USDT"
@@ -299,7 +463,7 @@ class DittoBot(Strategy):
             return 0
 
         # print(today_df)
-        pred = model.predict(today_df)
+        pred = model1.predict(today_df)
         print(pred)
         return pred
     
@@ -358,6 +522,42 @@ class DittoBot(Strategy):
                 self.submit_order(order) 
                 self.last_trade = "sell"
 
+
+
+def backtest(data, model, start=1000, step=550):
+    predictions = []
+    # Loop over the dataset in increments
+    for i in range(start, data.shape[0], step):
+        # Split into train and test sets
+        train = data.iloc[0:i].copy()
+        test = data.iloc[i:(i+step)].copy()
+        
+        testTarget = test["Next Dir"]
+        test.drop('Next Dir', axis=1, inplace=True)
+        test.drop('Next Close', axis=1, inplace=True)
+
+        target = train["Next Dir"]
+        train.drop('Next Dir', axis=1, inplace=True)
+        train.drop('Next Close', axis=1, inplace=True)
+        
+        # Fit the random forest model
+        model.fit(train, target)
+        
+        # Make predictions
+        preds = model.predict_proba(test)[:,1]
+        preds = pd.Series(preds, index=test.index)
+        preds[preds > .55] = 1
+        preds[preds<=.55] = 0
+        
+        # Combine predictions and test values
+        combined = pd.concat({"Target": testTarget,"Predictions": preds}, axis=1)
+        
+        predictions.append(combined)
+    
+    return pd.concat(predictions)     
+
+
+
 start_date = datetime(2020,8,3)
 end_date = datetime(2024,8,19) 
 broker = Alpaca(ALPACA_CREDS) 
@@ -373,15 +573,21 @@ if __name__ == '__main__':
         trader.add_strategy(strategy)
         trader.run_all()
     else:
+        accuracy, model1, model2 = train_model(SYMBOL,'2y')
+        print('Done');
 
-        # trader = Trader()
-        # trader.add_strategy(strategy)
-        # trader.run_all()
-        strategy.backtest(
-            YahooDataBacktesting, 
-            start_date, 
-            end_date, 
-            parameters={"symbol":SYMBOL, "cash_at_risk":.8},
-            benchmark_asset=SYMBOL
-        )
+        # predictions = backtest(df,model2)
+        # print(predictions["Predictions"].value_counts())
+        # print('')
+        # print(predictions["Target"].value_counts())
 
+        # print(metrics.precision_score(predictions["Target"], predictions["Predictions"]))
+
+        # strategy.backtest(
+        #     YahooDataBacktesting, 
+        #     start_date, 
+        #     end_date, 
+        #     parameters={"symbol":SYMBOL, "cash_at_risk":.8},
+        #     benchmark_asset=SYMBOL
+        # )
+        
