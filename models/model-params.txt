@@ -1,0 +1,262 @@
+SPX
+=========
+Training model for ^GSPC over 5y
+
+
+===============================
+          Performance           ^GSPC
+===============================
+Model 1 R-score : 0.9956536971952913
+Model 2 R-score : -0.8529411764705881
+Model 2 Correct %:  53.96825396825397
+
+Matrix, True/False
+[[91 45]
+ [71 45]]
+===============================
+Best Params:
+{'n_estimators': 1400, 'min_samples_split': 5, 'min_samples_leaf': 1, 'max_features': 'sqrt', 'max_depth': 90, 'bootstrap': True}
+Accuracy: 99.2 %.
+
+
+
+===============================
+          Performance           ^GDAXI
+===============================
+Model 1 R-score : 0.9928151753480129
+Model 2 R-score : -0.7489495798319332
+Model 2 Correct %:  56.470588235294116
+
+Matrix, True/False
+[[86 50]
+ [61 58]]
+===============================
+Best Params:
+{'n_estimators': 1200, 'min_samples_split': 2, 'min_samples_leaf': 1, 'max_features': 0.4, 'max_depth': 110, 'bootstrap': True}
+Accuracy: 99.19 %.
+
+
+
+BTC
+=========
+===============================
+          Performance           BTC-USD
+===============================
+Model 1 R-score : 0.9947917475539086
+Model 2 R-score : -0.7600358422939069
+Model 2 Correct %:  56.01092896174863
+
+Matrix, True/False
+[[117  69]
+ [ 92  88]]
+===============================
+
+
+Best Params:
+{'n_estimators': 1000, 'min_samples_split': 5, 'min_samples_leaf': 1, 'max_features': 'sqrt', 'max_depth': 30, 'bootstrap': True}
+Accuracy: 97.59 %.
+
+
+Gold
+==========
+===============================
+          Performance           GC=F
+===============================
+Model 1 R-score : 0.9931942362057821
+Model 2 R-score : -0.8234211361472545
+Model 2 Correct %:  54.761904761904766
+
+Matrix, True/False
+[[89 48]
+ [66 49]]
+===============================
+Best Params:
+{'n_estimators': 1600, 'min_samples_split': 2, 'min_samples_leaf': 1, 'max_features': 0.2, 'max_depth': 30, 'bootstrap': True}
+Accuracy: 99.3 %.
+
+
+
+===============================
+          Performance           EURUSD=X
+===============================
+Model 1 R-score : 0.996172311265443
+Model 2 R-score : -0.3740458015267176
+Model 2 Correct %:  65.64885496183206
+
+Matrix, True/False
+[[89 42]
+ [48 83]]
+===============================
+Best Params:
+{'n_estimators': 600, 'min_samples_split': 2, 'min_samples_leaf': 1, 'max_features': 0.8, 'max_depth': 60, 'bootstrap': True}
+Accuracy: 99.75 %
+
+
+
+
+===============================
+          Performance           USDJPY=X
+===============================
+Model 1 R-score : 0.9989383543619001
+Model 2 R-score : -0.6320150437797494
+Model 2 Correct %:  59.541984732824424
+
+Matrix, True/False
+[[100  43]
+ [ 63  56]]
+===============================
+Best Params:
+{'n_estimators': 400, 'min_samples_split': 2, 'min_samples_leaf': 1, 'max_features': 0.8, 'max_depth': 100, 'bootstrap': True}
+Accuracy: 99.69 %
+
+
+
+
+
+
+
+
+========================================================================================================================================================================================================================
+======================================================
+======================================================
+MODEL 2
+======================================================
+======================================================
+
+
+===============================
+          Performance           ETH-USD
+===============================
+Model 1 R-score : 0.9941080542912235
+Model 2 R-score : -0.9036857680925481
+Model 2 Correct %:  52.459016393442624
+
+Matrix, True/False
+[[110  79]
+ [ 95  82]]
+===============================
+
+Best Params:
+{'n_estimators': 1200, 'min_samples_split': 5, 'min_samples_leaf': 2, 'max_features': 'log2', 'max_depth': 20, 'bootstrap': True}
+Model Performance
+Average Error: 0.4754 degrees.
+Accuracy = 52.46%.
+Model Performance
+Average Error: 0.4699 degrees.
+Accuracy = 53.01%.
+Improvement of 1.04%.
+
+
+===============================
+          Performance           EURUSD=X
+===============================
+Model 1 R-score : 0.982272289051864
+Model 2 R-score : -0.333454281567489
+Model 2 Correct %:  66.66666666666666
+
+Matrix, True/False
+[[38 14]
+ [21 32]]
+===============================
+
+
+Best Params:
+{'bootstrap': True, 'max_depth': 70, 'max_features': 0.8, 'min_samples_leaf': 4, 'min_samples_split': 10, 'n_estimators': 2000}
+Model Performance
+Average Error: 0.3333 degrees.
+Accuracy = 66.67%.
+Model Performance
+Average Error: 0.3143 degrees.
+Accuracy = 68.57%.
+Improvement of 2.86%.
+
+
+
+===============================
+          Performance           USDJPY=X
+===============================
+Model 1 R-score : 0.9989370268481157
+Model 2 R-score : -0.6166186754422045
+Model 2 Correct %:  59.92366412213741
+
+Matrix, True/False
+[[102  41]
+ [ 64  55]]
+===============================
+Best Params:
+{'n_estimators': 2200, 'min_samples_split': 2, 'min_samples_leaf': 4, 'max_features': 0.8, 'max_depth': 70, 'bootstrap': True}
+Model Performance
+Average Error: 0.4008 degrees.
+Accuracy = 59.92%.
+Model Performance
+Average Error: 0.3779 degrees.
+Accuracy = 62.21%.
+Improvement of 3.82%.
+
+
+===============================
+          Performance           GC=F
+===============================
+Model 1 R-score : 0.9931977399376628
+Model 2 R-score : -0.8234211361472545
+Model 2 Correct %:  54.761904761904766
+
+Matrix, True/False
+[[89 48]
+ [66 49]]
+===============================
+Best Params:
+{'n_estimators': 1000, 'min_samples_split': 2, 'min_samples_leaf': 1, 'max_features': 'sqrt', 'max_depth': 70, 'bootstrap': False}
+Model Performance
+Average Error: 0.4524 degrees.
+Accuracy = 54.76%.
+Model Performance
+Average Error: 0.4524 degrees.
+Accuracy = 54.76%.
+Improvement of 0.00%.
+Accuracy: 54.76 %.
+
+
+===============================
+          Performance           AAPL
+===============================
+Model 1 R-score : 0.9963340915301759
+Model 2 R-score : -0.9464387464387465
+Model 2 Correct %:  51.587301587301596
+
+Matrix, True/False
+[[78 57]
+ [65 52]]
+===============================
+Best Params:
+{'n_estimators': 1400, 'min_samples_split': 10, 'min_samples_leaf': 2, 'max_features': 'sqrt', 'max_depth': 110, 'bootstrap': True}
+Model Performance
+Average Error: 0.4841 degrees.
+Accuracy = 51.59%.
+Model Performance
+Average Error: 0.4683 degrees.
+Accuracy = 53.17%.
+Improvement of 3.08%.
+
+
+
+===============================
+          Performance           ^GDAXI
+===============================
+Model 1 R-score : 0.9928159717970977
+Model 2 R-score : -0.7489495798319332
+Model 2 Correct %:  56.470588235294116
+
+Matrix, True/False
+[[85 51]
+ [60 59]]
+===============================
+Best Params:
+{'n_estimators': 2200, 'min_samples_split': 2, 'min_samples_leaf': 1, 'max_features': 0.2, 'max_depth': 10, 'bootstrap': True}
+Model Performance
+Average Error: 0.4353 degrees.
+Accuracy = 56.47%.
+Model Performance
+Average Error: 0.4275 degrees.
+Accuracy = 57.25%.
+Improvement of 1.39%.

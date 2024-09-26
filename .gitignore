@@ -2,7 +2,7 @@
 *.pkl
 
 logs/
-models/
+models/*.pkl
 
 .DS_Store
 
