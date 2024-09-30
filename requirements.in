@@ -1,6 +1,7 @@
 # requirements.in
 
 alpaca_trade_api
+boto3
 datetime
 flask
 joblib

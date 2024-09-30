@@ -37,7 +37,8 @@ ALPACA_CREDS = {
 }
 
 symbols = ['AAPL','^GSPC','BTC-USD', 'ETH-USD', '^GDAXI','GC=F','EURUSD=X','USDJPY=X','NVDA']
-SYMBOL = symbols[6]
+SYMBOL = symbols[3]
+# SYMBOL = 'SOL-USD'
 print('Symbol:',SYMBOL)
 
 # Load data
@@ -159,7 +160,7 @@ def build_dataFrame2(fresh_df):
     return fresh_df
 
 
-df = build_dataFrame1(df)
+df = build_dataFrame2(df)
 
 
 # =======================
@@ -432,11 +433,11 @@ class DittoBot(Strategy):
     def position_sizing(self): 
         cash = self.get_cash() 
         last_price = self.get_last_price(self.symbol) or 50000
-        print('Last_price',last_price)
-        print('cash',cash)
-        print('CAR',self.cash_at_risk)
-        # quantity = round(cash * self.cash_at_risk / last_price,0)
-        quantity = 1
+        # print('Last_price',last_price)
+        # print('cash',cash)
+        # print('CAR',self.cash_at_risk)
+        quantity = round(cash * self.cash_at_risk / last_price,0)
+        # quantity = 1
         return cash, last_price, quantity
 
     def get_predicted_close(self):
@@ -450,22 +451,32 @@ class DittoBot(Strategy):
             newData = pd.DataFrame() # Empty DataFrame
             newData = newData.ta.ticker(SYMBOL, period=self.period, interval="1d")
             # print(newData.tail(5))
-            newData = build_dataFrame(newData)
+            newData = build_dataFrame2(newData)
 
         
         today_df = newData[todayStr:todayStr]
         today_df = today_df.drop('Next Close',axis=1)
+        today_df = today_df.drop('Next Dir',axis=1)
 
         if today_df.empty:
             print('*****************')
             print('No data for', todayStr)
             print('*****************')
-            return 0
+            return 0, 0
 
         # print(today_df)
-        pred = model1.predict(today_df)
+        pred = model2.predict(today_df)
+        prob = model2.predict_proba(today_df)
         print(pred)
-        return pred
+
+        confidence = prob.max(axis=1)
+        print('Max today')
+        print(confidence)
+        result = map(lambda x: round(x*100,1), confidence)
+        result = list(result)
+        print(result)
+
+        return pred, result[0]
     
     def before_market_closes(self):
         print('Before market close event!')
@@ -478,20 +489,20 @@ class DittoBot(Strategy):
             self.await_market_to_close(5) # pause trading_iteration until 5mins before close
 
         cash, last_price, quantity = self.position_sizing() 
-        pred_close = self.get_predicted_close()
+        pred_close, prob = self.get_predicted_close()
 
-        if pred_close == 0:
-            pred_close = last_price
+        # if pred_close == 0:
+        #     pred_close = last_price
 
-        diff = pred_close - last_price
-        diff_percent = (diff/last_price)*100
+        # diff = pred_close - last_price
+        # diff_percent = (diff/last_price)*100
 
-        print(f"Diff: {diff}! percent: {diff_percent}")
-        print(diff > 0 and diff_percent > self.threshold)
-        print(diff < 0 and diff_percent < (self.threshold*-1))
+        # print(f"Diff: {diff}! percent: {diff_percent}")
+        # print(diff > 0 and diff_percent > self.threshold)
+        # print(diff < 0 and diff_percent < (self.threshold*-1))
 
         if cash > last_price: 
-            if diff > 0 and diff_percent > self.threshold: 
+            if pred_close == 1 and prob > 72: 
                 if self.last_trade == "sell": 
                     # self.sell_all()
                     print('change short to long')
@@ -506,7 +517,7 @@ class DittoBot(Strategy):
                 )
                 self.submit_order(order) 
                 self.last_trade = "buy"
-            elif diff < 0 and diff_percent < (self.threshold*-1): 
+            elif pred_close == 0 and prob > 72: 
                 if self.last_trade == "buy": 
                     # self.sell_all() 
                     print('change long to short')
@@ -558,12 +569,12 @@ def backtest(data, model, start=1000, step=550):
 
 
 
-start_date = datetime(2020,8,3)
-end_date = datetime(2024,8,19) 
-broker = Alpaca(ALPACA_CREDS) 
-strategy = DittoBot(name='DittoBot', broker=broker, 
-                    parameters={"symbol":'BTC/USD', 
-                                "cash_at_risk":.8})
+start_date = datetime(2024,8,1)
+end_date = datetime(2024,10,1) 
+# broker = Alpaca(ALPACA_CREDS) 
+# strategy = DittoBot(name='DittoBot', broker=broker, 
+#                     parameters={"symbol":'BTC/USD', 
+#                                 "cash_at_risk":.8})
 
 # print('here')
 if __name__ == '__main__':
@@ -571,9 +582,9 @@ if __name__ == '__main__':
     if os.environ.get('APP_FILE'):
         trader = Trader()
         trader.add_strategy(strategy)
-        trader.run_all()
+        # trader.run_all()
     else:
-        accuracy, model1, model2 = train_model(SYMBOL,'2y')
+        accuracy, model1, model2 = train_model(SYMBOL,'5y')
         print('Done');
 
         # predictions = backtest(df,model2)
