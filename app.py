@@ -241,7 +241,7 @@ def train_model(symbol,period):
     # store model
     name1 = symbol + '-model.pkl'
     name2 = symbol + '-2-model.pkl'
-    joblib.dump(model1, 'models/'+name1)
+    # joblib.dump(model1, 'models/'+name1)
     joblib.dump(model2, 'models/'+name2)
 
     
@@ -393,13 +393,13 @@ def hypertune2(x,y,xtest,ytest):
 # ==================================
 
 
-from lumibot.brokers import Alpaca
-from lumibot.backtesting import YahooDataBacktesting
-from lumibot.strategies.strategy import Strategy
-from lumibot.traders import Trader
+# from lumibot.brokers import Alpaca
+# from lumibot.backtesting import YahooDataBacktesting
+# from lumibot.strategies.strategy import Strategy
+# from lumibot.traders import Trader
 from datetime import datetime
 
-class DittoBot(Strategy): 
+class DittoBot(): 
     def initialize(self, symbol:str=SYMBOL, cash_at_risk:float=.5): 
         self.symbol = symbol
         self.sleeptime = "24H"
@@ -580,9 +580,10 @@ end_date = datetime(2024,10,1)
 if __name__ == '__main__':
     print(os.environ.get('APP_FILE'))
     if os.environ.get('APP_FILE'):
-        trader = Trader()
-        trader.add_strategy(strategy)
+        # trader = Trader()
+        # trader.add_strategy(strategy)
         # trader.run_all()
+        print('Done')
     else:
         accuracy, model1, model2 = train_model(SYMBOL,'5y')
         print('Done');

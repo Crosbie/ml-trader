@@ -20,7 +20,6 @@ S3_BUCKET = os.environ.get('S3_BUCKET')
 
 page = '''<div style="font-family:verdana;background:#cdcdcd;border-radius:20px;padding:150px;margin:20px">
     <h2><a href="/">Home</a></h2>
-    <h2><a href="/train/AAPL">/train/(symbol)</a> to train a new model, takes <40sec</h2>
     <h2><a href="/fetch/AAPL">/fetch/(symbol)</a> to predict using model</h2>
     <h2><a href="/models">/models</a> to list all trained models</h2>
 '''
@@ -78,8 +77,8 @@ def json_fetch(symbol):
         return msg
     else:
         try:
-            # model1 = joblib.load("models/"+symbol+"-model.pkl") # Load "model.pkl"
-            model2 = read_model(S3_BUCKET+"/"+symbol+"-2-model.pkl")
+            model2 = joblib.load("models/"+symbol+"-2-model.pkl") # Load "model.pkl"
+            # model2 = read_model(S3_BUCKET+"/"+symbol+"-2-model.pkl")
             print("model2")
             # print(model2)
             df1, df2 = getData(symbol)
