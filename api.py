@@ -66,6 +66,28 @@ def json_train(symbol,period):
         return msg
 
 
+# Pull model from s3 bucket and save locally
+@app.route('/json/pull/<symbol>')
+def json_pull(symbol):
+
+    df1, df2 = getData(symbol)
+    if df2.empty:
+        msg = {"msg":"Invalid ticker",
+               "symbol":symbol}
+        return msg
+    else:
+        model2 = read_model(S3_BUCKET+"/"+symbol+"-2-model.pkl")
+        name2 = symbol + '-2-model.pkl'
+
+        if model2 is None:
+            return {"msg":"No model exists",
+                    "model": name2}
+        
+        joblib.dump(model2, 'models/'+name2)
+        msg = {"msg":"ok",
+               "model": name2}
+        return msg
+
 @app.route('/json/fetch/<symbol>')
 def json_fetch(symbol):
 
@@ -78,7 +100,6 @@ def json_fetch(symbol):
     else:
         try:
             model2 = joblib.load("models/"+symbol+"-2-model.pkl") # Load "model.pkl"
-            # model2 = read_model(S3_BUCKET+"/"+symbol+"-2-model.pkl")
             print("model2")
             # print(model2)
             df1, df2 = getData(symbol)
@@ -260,26 +281,31 @@ def fetch(symbol):
 def read_model(path):
 
     print('fetching model',path)
+    file = None;
     access_key = os.environ.get('AWS_ACCESS_KEY')
     secret_key = os.environ.get('AWS_SECRET_KEY')
         
     s3_bucket, s3_key = path.split('/')[2], path.split('/')[3:]
     s3_key = '/'.join(s3_key)
-    with BytesIO() as f:
-        boto3.client("s3", aws_access_key_id=access_key, aws_secret_access_key=secret_key).download_fileobj(Bucket=s3_bucket, Key=s3_key, Fileobj=f)
-        f.seek(0)
-        file = joblib.load(f)
- 
+    
+    try:
+        with BytesIO() as f:
+            boto3.client("s3", aws_access_key_id=access_key, aws_secret_access_key=secret_key).download_fileobj(Bucket=s3_bucket, Key=s3_key, Fileobj=f)
+            f.seek(0)
+            file = joblib.load(f)
+    except:
+        return file
+
     return file
 
 
 def getData(SYMBOL):
     df1 = pd.DataFrame() # Empty DataFrame
-    df1 = df1.ta.ticker(SYMBOL, period="1y", interval="1d")
+    df1 = df1.ta.ticker(SYMBOL, period="max", interval="1d")
     df1 = build_dataFrame1(df1)
 
     df2 = pd.DataFrame() # Empty DataFrame
-    df2 = df2.ta.ticker(SYMBOL, period="1y", interval="1d")
+    df2 = df2.ta.ticker(SYMBOL, period="max", interval="1d")
     df2 = build_dataFrame2(df2)
     return df1, df2
 

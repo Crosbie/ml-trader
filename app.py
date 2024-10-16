@@ -241,8 +241,9 @@ def train_model(symbol,period):
     # store model
     name1 = symbol + '-model.pkl'
     name2 = symbol + '-2-model.pkl'
-    # joblib.dump(model1, 'models/'+name1)
     joblib.dump(model2, 'models/'+name2)
+    # joblib.dump(model1, 'models/'+name1)
+    
 
     
 
