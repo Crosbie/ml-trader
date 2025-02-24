@@ -36,8 +36,8 @@ ALPACA_CREDS = {
     "PAPER": True
 }
 
-symbols = ['AAPL','^GSPC','BTC-USD', 'ETH-USD', '^GDAXI','GC=F','EURUSD=X','USDJPY=X','NVDA']
-SYMBOL = symbols[3]
+symbols = ["AAPL",'^GSPC','BTC-USD', 'ETH-USD', '^GDAXI','GC=F','EURUSD=X','USDJPY=X','NVDA']
+SYMBOL = symbols[0]
 # SYMBOL = 'SOL-USD'
 print('Symbol:',SYMBOL)
 
@@ -49,9 +49,15 @@ print('Symbol:',SYMBOL)
 # History by Interval by interval (including intraday if period < 60 days)
 # Valid intervals: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo
 # Default: "1d"
-df = df.ta.ticker(SYMBOL, period="5y", interval="1d")
+df = yf.Ticker(SYMBOL).history(period="5y", interval="1d")
+# df = yf.download([SYMBOL], period="5y", interval="1d")
+# df = df.ta.ticker(SYMBOL, period="5y", interval="1d")
 
-
+# if isinstance(df.columns, pd.MultiIndex):
+#     df = df.xs(key="AAPL", axis=1, level=1)  # Extract relevant ticker's data
+#     print('flattening')
+#     print(df.head())
+print(df.head())
 
 
 def build_dataFrame1(fresh_df):
@@ -90,7 +96,7 @@ def build_dataFrame1(fresh_df):
     
     fresh_df.ta.vwap(append=True)
 
-    # fresh_df['SMA 10'] = fresh_df.ta.sma(10)
+    fresh_df['SMA 10'] = fresh_df.ta.sma(10)
     fresh_df['SMA 50'] = fresh_df.ta.sma(50)
     fresh_df['SMA 200'] = fresh_df.ta.sma(200)
     fresh_df['EMA 20'] = fresh_df.ta.ema(20)
