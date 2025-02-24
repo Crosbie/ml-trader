@@ -210,13 +210,13 @@ def fetch(symbol):
         return page + msg
     else:
         try:
-            model1 = joblib.load("models/"+symbol+"-model.pkl") # Load "model.pkl"
+            # model1 = joblib.load("models/"+symbol+"-model.pkl") # Load "model.pkl"
             model2 = joblib.load("models/"+symbol+"-2-model.pkl") # Load "model.pkl"
             df1, df2 = getData(symbol)
-            df1 = df1.tail(2)
-            df1 = df1.drop('Next Close',axis=1)
-            df1 = df1.drop('Next Dir',axis=1)
-            pred = model1.predict(df1)
+            # df1 = df1.tail(2)
+            # df1 = df1.drop('Next Close',axis=1)
+            # df1 = df1.drop('Next Dir',axis=1)
+            # pred = model1.predict(df1)
 
             df2 = df2.tail(2)
             df2 = df2.drop('Next Close',axis=1)
@@ -243,11 +243,11 @@ def fetch(symbol):
             todayClose = round(df1['Close'][1],4)
             todayOpen = round(df1['Open'][1],4)
 
-            todayDiff = pred[0] - yesterdayClose
-            tomorrowDiff = pred[1] - todayClose
+            # todayDiff = pred[0] - yesterdayClose
+            # tomorrowDiff = pred[1] - todayClose
 
-            todayDiff_pc = round((todayDiff/yesterdayClose)*100,2)
-            tomorrowDiff_pc = round((tomorrowDiff/todayClose)*100,2)
+            # todayDiff_pc = round((todayDiff/yesterdayClose)*100,2)
+            # tomorrowDiff_pc = round((tomorrowDiff/todayClose)*100,2)
 
 
             data = ' '.join(('<h4>'+symbol+'</h4>',
@@ -259,17 +259,17 @@ def fetch(symbol):
              str(yesterdayClose),
             '<h5>Todays Open:</h5>',
              str(todayOpen),
-            '<h5>Todays Close (pred):</h5>',
-             str(round(pred[0],4)),
-            '<span>diff:',
-             str(todayDiff_pc) + '%',
+            # '<h5>Todays Close (pred):</h5>',
+            #  str(round(pred[0],4)),
+            # '<span>diff:',
+            #  str(todayDiff_pc) + '%',
             '</span></hr></br>',
             '<h5>Tomorrow Open:</h5>',
              str(todayClose),
-            '<h5>Tomorrow Close (pred):</h5>',
-             str(round(pred[1],4)),
-            '<span>diff:',
-             str(tomorrowDiff_pc) + '%',
+            # '<h5>Tomorrow Close (pred):</h5>',
+            #  str(round(pred[1],4)),
+            # '<span>diff:',
+            #  str(tomorrowDiff_pc) + '%',
             '</span></hr></br>'))
 
             return page + str(data)
