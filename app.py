@@ -181,11 +181,13 @@ def train_model(symbol,period):
 
     logging.info('Training model for %s over %s',symbol, period)
     training_df1 = pd.DataFrame()
-    training_df1 = training_df1.ta.ticker(symbol, period=period, interval="1d")
+    training_df1 = yf.Ticker(symbol).history(period=period, interval="1d")
+    # training_df1 = training_df1.ta.ticker(symbol, period=period, interval="1d")
     training_df1 = build_dataFrame1(training_df1)
 
     training_df2 = pd.DataFrame()
-    training_df2 = training_df2.ta.ticker(symbol, period=period, interval="1d")
+    # training_df2 = training_df2.ta.ticker(symbol, period=period, interval="1d")
+    training_df2 = yf.Ticker(symbol).history(period=period, interval="1d")
     training_df2 = build_dataFrame2(training_df2)
 
     training_df1=training_df1.fillna(training_df1.mean())
@@ -456,7 +458,7 @@ class DittoBot():
             newData = df
         else:
             newData = pd.DataFrame() # Empty DataFrame
-            newData = newData.ta.ticker(SYMBOL, period=self.period, interval="1d")
+            newData = yf.Ticker(SYMBOL).history(period=self.period, interval="1d")
             # print(newData.tail(5))
             newData = build_dataFrame2(newData)
 
