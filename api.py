@@ -9,6 +9,7 @@ import numpy as np
 from dotenv import load_dotenv
 import boto3 
 from io import BytesIO 
+import yfinance as yf
 from app import build_dataFrame1, build_dataFrame2, train_model
 # from fundemental import getSentiment
 
@@ -302,11 +303,11 @@ def read_model(path):
 
 def getData(SYMBOL):
     df1 = pd.DataFrame() # Empty DataFrame
-    df1 = df1.ta.ticker(SYMBOL, period="max", interval="1d")
+    df1 = yf.Ticker(SYMBOL).history(period="2y", interval="1d")
     df1 = build_dataFrame1(df1)
 
     df2 = pd.DataFrame() # Empty DataFrame
-    df2 = df2.ta.ticker(SYMBOL, period="max", interval="1d")
+    df2 = yf.Ticker(SYMBOL).history(period="2y", interval="1d")
     df2 = build_dataFrame2(df2)
     return df1, df2
 
