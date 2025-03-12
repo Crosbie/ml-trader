@@ -11,6 +11,7 @@ import boto3
 from io import BytesIO 
 import yfinance as yf
 from app import build_dataFrame1, build_dataFrame2, train_model
+import json
 # from fundemental import getSentiment
 
 latest_preds = {}
@@ -38,6 +39,65 @@ def hello():
 # JSON Routes
 # =============================
 
+@app.route('/json/prices/<symbol>')
+def json_prices(symbol):
+
+    df1, df2 = getData(symbol,None,None)
+    df2 = df2.tail(2)
+    df2 = df2.drop('Next Close',axis=1)
+    df2 = df2.drop('Next Dir',axis=1)
+
+    # index 1 = today, 0 = yesterday
+    obj = df2.iloc[1].to_json(orient="index")
+    obj = json.loads(obj)
+
+    data = {
+        "msg":"ok",
+        "data": obj
+    }
+    return data
+
+@app.route('/json/pricesHours/<hours>/<symbol>')
+def json_pricesHours(hours,symbol):
+
+    hours = int(hours)
+
+    df1, df2 = getData(symbol,"1mo","1h")
+    df2 = df2.tail(hours)
+    df2 = df2.drop('Next Close',axis=1)
+    df2 = df2.drop('Next Dir',axis=1)
+
+    # index 1 = today, 0 = yesterday
+    obj = df2.to_json(orient="index")
+    obj = json.loads(obj)
+
+    data = {
+        "msg":"ok",
+        "data": obj
+    }
+    return data
+
+@app.route('/json/pricesDays/<days>/<symbol>')
+def json_pricesHours(days,symbol):
+
+    days = int(days)
+
+    df1, df2 = getData(symbol,"3mo","1d")
+    df2 = df2.tail(days)
+    df2 = df2.drop('Next Close',axis=1)
+    df2 = df2.drop('Next Dir',axis=1)
+
+    # index 1 = today, 0 = yesterday
+    obj = df2.to_json(orient="index")
+    obj = json.loads(obj)
+
+    data = {
+        "msg":"ok",
+        "data": obj
+    }
+    return data
+
+
 @app.route('/json/models')
 def json_models():
 
@@ -51,7 +111,7 @@ def json_models():
 @app.route('/json/train/<symbol>/<period>')
 def json_train(symbol,period):
 
-    df1, df2 = getData(symbol)
+    df1, df2 = getData(symbol,None,None)
     if df1.empty:
         msg = {"msg":"Invalid ticker",
                "symbol":symbol}
@@ -72,7 +132,7 @@ def json_train(symbol,period):
 @app.route('/json/pull/<symbol>')
 def json_pull(symbol):
 
-    df1, df2 = getData(symbol)
+    df1, df2 = getData(symbol,None,None)
     if df2.empty:
         msg = {"msg":"Invalid ticker",
                "symbol":symbol}
@@ -93,7 +153,7 @@ def json_pull(symbol):
 @app.route('/json/fetch/<symbol>')
 def json_fetch(symbol):
 
-    df1, df2 = getData(symbol)
+    df1, df2 = getData(symbol,None,None)
     if df1.empty:
         msg = {"msg":"Invalid ticker",
                "symbol":symbol
@@ -104,7 +164,7 @@ def json_fetch(symbol):
             model2 = joblib.load("models/"+symbol+"-2-model.pkl") # Load "model.pkl"
             print("model2")
             # print(model2)
-            df1, df2 = getData(symbol)
+            df1, df2 = getData(symbol,None,None)
             df1 = df1.tail(2)
             df1 = df1.drop('Next Close',axis=1)
             df1 = df1.drop('Next Dir',axis=1)
@@ -190,7 +250,7 @@ def models():
 @app.route('/train/<symbol>')
 def train(symbol):
 
-    df1, df2 = getData(symbol)
+    df1, df2 = getData(symbol,None,None)
     if df1.empty:
         msg = "Invalid ticker: "+symbol
 
@@ -204,7 +264,7 @@ def train(symbol):
 @app.route('/fetch/<symbol>')
 def fetch(symbol):
 
-    df1, df2 = getData(symbol)
+    df1, df2 = getData(symbol,None,None)
     if df1.empty:
         msg = "Invalid ticker: "+symbol
         return page + msg
@@ -212,7 +272,7 @@ def fetch(symbol):
         try:
             # model1 = joblib.load("models/"+symbol+"-model.pkl") # Load "model.pkl"
             model2 = joblib.load("models/"+symbol+"-2-model.pkl") # Load "model.pkl"
-            df1, df2 = getData(symbol)
+            df1, df2 = getData(symbol,None,None)
             # df1 = df1.tail(2)
             # df1 = df1.drop('Next Close',axis=1)
             # df1 = df1.drop('Next Dir',axis=1)
@@ -301,13 +361,19 @@ def read_model(path):
     return file
 
 
-def getData(SYMBOL):
+def getData(SYMBOL,period,interval):
+    if not period:
+        period = "2y"
+
+    if not interval:
+        interval = "1d"
+
     df1 = pd.DataFrame() # Empty DataFrame
-    df1 = yf.Ticker(SYMBOL).history(period="2y", interval="1d")
+    df1 = yf.Ticker(SYMBOL).history(period=period, interval=interval)
     df1 = build_dataFrame1(df1)
 
     df2 = pd.DataFrame() # Empty DataFrame
-    df2 = yf.Ticker(SYMBOL).history(period="2y", interval="1d")
+    df2 = yf.Ticker(SYMBOL).history(period=period, interval=interval)
     df2 = build_dataFrame2(df2)
     return df1, df2
 

@@ -62,8 +62,11 @@ print(df.head())
 
 def build_dataFrame1(fresh_df):
     # Clean df
-    fresh_df.drop('Stock Splits', axis=1, inplace=True)
-    fresh_df.drop('Dividends', axis=1, inplace=True)
+    if 'Stock Splits' in fresh_df.columns:
+        fresh_df.drop('Stock Splits', axis=1, inplace=True)
+
+    if 'Dividends' in fresh_df.columns:
+        fresh_df.drop('Dividends', axis=1, inplace=True)
 
     # Calculate Returns and append to the df DataFrame
     fresh_df.ta.percent_return(cumulative=False, append=True)
