@@ -78,7 +78,7 @@ def json_pricesHours(hours,symbol):
     return data
 
 @app.route('/json/pricesDays/<days>/<symbol>')
-def json_pricesHours(days,symbol):
+def json_pricesDays(days,symbol):
 
     days = int(days)
 
