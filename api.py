@@ -42,7 +42,7 @@ def hello():
 @app.route('/json/prices/<symbol>')
 def json_prices(symbol):
 
-    df1, df2 = getData(symbol,None,None)
+    df1, df2 = getData(symbol,"1y",None)
     df2 = df2.tail(2)
     df2 = df2.drop('Next Close',axis=1)
     df2 = df2.drop('Next Dir',axis=1)
@@ -82,7 +82,7 @@ def json_pricesDays(days,symbol):
 
     days = int(days)
 
-    df1, df2 = getData(symbol,"3mo","1d")
+    df1, df2 = getData(symbol,"1y","1d")
     df2 = df2.tail(days)
     df2 = df2.drop('Next Close',axis=1)
     df2 = df2.drop('Next Dir',axis=1)

@@ -145,9 +145,10 @@ def build_dataFrame2(fresh_df):
     fresh_df.ta.mad(append=True)
     fresh_df.ta.adx(append=True)
     fresh_df.ta.ttm_trend(append=True)
+    fresh_df.ta.stochrsi(append=True)
     
     fresh_df.ta.vwap(append=True)
-    fresh_df.ta.cdl_pattern(name="all",append=True)
+    # fresh_df.ta.cdl_pattern(name="all",append=True)
 
     # custom trends
     weekly_mean = fresh_df.rolling(7).mean()
@@ -167,6 +168,11 @@ def build_dataFrame2(fresh_df):
     fresh_df['SMA 50'] = fresh_df.ta.sma(50)
     fresh_df['SMA 200'] = fresh_df.ta.sma(200)
     fresh_df['EMA 20'] = fresh_df.ta.ema(20)
+    fresh_df['EMA 50'] = fresh_df.ta.ema(50)
+    fresh_df['EMA 200'] = fresh_df.ta.ema(200)
+    fresh_df['EMA 200'] = fresh_df.ta.ema(200)
+    # fresh_df['stochastic 14'] = fresh_df.ta.stochrsi()
+
     fresh_df['GoldenCross'] = (fresh_df['SMA 50'] > fresh_df['SMA 200'])
     fresh_df.ta.obv(append=True)
 

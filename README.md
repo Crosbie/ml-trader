@@ -29,3 +29,25 @@ pip install -r requirements.txt
 ### (optional) Create bloated req file
 pip freeze > requirements.txt
 
+
+
+
+
+### server commands
+#### start ssh agent
+eval "$(ssh-agent -s)"
+
+ssh-add ~/github
+
+#### python
+source ~/pyEnvs/ml-trader/bin/activate
+
+pkill python
+nohup python api.py &
+ps aux
+
+#### nodejs
+
+forever start bin/www
+forever list
+forever stopall
