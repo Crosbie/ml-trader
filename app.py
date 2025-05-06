@@ -99,11 +99,11 @@ def build_dataFrame1(fresh_df):
     
     fresh_df.ta.vwap(append=True)
 
-    fresh_df['SMA 10'] = fresh_df.ta.sma(10)
-    fresh_df['SMA 50'] = fresh_df.ta.sma(50)
-    fresh_df['SMA 200'] = fresh_df.ta.sma(200)
-    fresh_df['EMA 20'] = fresh_df.ta.ema(20)
-    fresh_df['GoldenCross'] = (fresh_df['SMA 50'] > fresh_df['SMA 200'])
+    # fresh_df['SMA 10'] = fresh_df.ta.sma(10)
+    # fresh_df['SMA 50'] = fresh_df.ta.sma(50)
+    # fresh_df['SMA 200'] = fresh_df.ta.sma(200)
+    # fresh_df['EMA 20'] = fresh_df.ta.ema(20)
+    # fresh_df['GoldenCross'] = (fresh_df['SMA 50'] > fresh_df['SMA 200'])
     fresh_df.ta.obv(append=True)
 
     return fresh_df
@@ -166,12 +166,11 @@ def build_dataFrame2(fresh_df):
 
     # fresh_df['SMA 10'] = fresh_df.ta.sma(10)
     fresh_df['SMA 50'] = fresh_df.ta.sma(50)
-    fresh_df['SMA 200'] = fresh_df.ta.sma(200)
+    
     fresh_df['EMA 20'] = fresh_df.ta.ema(20)
     fresh_df['EMA 50'] = fresh_df.ta.ema(50)
     fresh_df['EMA 200'] = fresh_df.ta.ema(200)
-    fresh_df['EMA 200'] = fresh_df.ta.ema(200)
-    # fresh_df['stochastic 14'] = fresh_df.ta.stochrsi()
+    fresh_df['SMA 200'] = fresh_df.ta.sma(200)
 
     fresh_df['GoldenCross'] = (fresh_df['SMA 50'] > fresh_df['SMA 200'])
     fresh_df.ta.obv(append=True)

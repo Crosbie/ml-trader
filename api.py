@@ -44,8 +44,6 @@ def json_prices(symbol):
 
     df1, df2 = getData(symbol,"1y",None)
     df2 = df2.tail(2)
-    df2 = df2.drop('Next Close',axis=1)
-    df2 = df2.drop('Next Dir',axis=1)
 
     # index 1 = today, 0 = yesterday
     obj = df2.iloc[1].to_json(orient="index")
@@ -59,13 +57,10 @@ def json_prices(symbol):
 
 @app.route('/json/pricesHours/<hours>/<symbol>')
 def json_pricesHours(hours,symbol):
-
     hours = int(hours)
 
-    df1, df2 = getData(symbol,"1mo","1h")
+    df1, df2 = getData(symbol,"3mo","1h")
     df2 = df2.tail(hours)
-    df2 = df2.drop('Next Close',axis=1)
-    df2 = df2.drop('Next Dir',axis=1)
 
     # index 1 = today, 0 = yesterday
     obj = df2.to_json(orient="index")
@@ -79,13 +74,10 @@ def json_pricesHours(hours,symbol):
 
 @app.route('/json/pricesDays/<days>/<symbol>')
 def json_pricesDays(days,symbol):
-
     days = int(days)
 
     df1, df2 = getData(symbol,"1y","1d")
     df2 = df2.tail(days)
-    df2 = df2.drop('Next Close',axis=1)
-    df2 = df2.drop('Next Dir',axis=1)
 
     # index 1 = today, 0 = yesterday
     obj = df2.to_json(orient="index")
