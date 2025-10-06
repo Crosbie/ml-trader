@@ -1,0 +1,120 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import yfinance as yf 
+import pandas as pd
+import pandas_ta as ta
+from sklearn.preprocessing import MinMaxScaler
+
+import keras
+from keras import optimizers
+from keras.callbacks import History
+from keras.models import Model
+from keras.models import Sequential
+from keras.layers import LSTM
+from keras.layers import Dropout
+from keras.layers import Dense
+from keras.layers import TimeDistributed
+from keras.layers import Dense, Dropout, LSTM, Input, Activation, concatenate
+
+import tensorflow as tf
+
+
+data = yf.download(tickers = '^GSPC', start = '2014-01-01' , end = '2024-12-31')
+# data.head(10)
+
+
+
+data.columns = data.columns.get_level_values(0)
+
+#Adding indicators
+data['RSI'] = ta.rsi(data.Close, length=15)
+data['EMAF'] = ta.ema(data.Close, length=20)
+data['EMAM'] = ta.ema(data.Close, length=100)
+data['EMAS'] = ta.ema(data.Close, length=150)
+
+data['Target'] = data['Close']-data.Open
+data['Target'] = data['Target'].shift(-1)
+
+data['TargetClass'] = [1 if data.Target[i]>0 else 0 for i in range(len(data))]
+
+data['TargetNextClose']=data['Close'].shift(-1)
+
+# drop rows with NA
+data.dropna(inplace=True)
+data.reset_index(inplace = True)
+data.drop(['Volume', 'Date'], axis=1, inplace=True)
+print(data.head(10))
+
+data_set = data.iloc[:, 0:12]
+pd.set_option('display.max_columns', None)
+
+data_set.head(20)
+
+
+sc = MinMaxScaler(feature_range=(0,1))
+data_set_scaled = sc.fit_transform(data_set)
+print(data_set_scaled)
+
+print(data.shape)
+print(data_set_scaled.shape)
+
+
+
+#multiple feature from data provided by the model
+X = []
+#number of candles or days used to make the prediction
+backcandles = 30
+
+X = np.array([data_set_scaled[i-backcandles:i, :8].copy() for i in range(backcandles, len(data_set_scaled))])
+
+X, yi = np.array(X), np.array(data_set_scaled[backcandles:,-3])
+y = np.reshape(yi,(len(yi),1))
+
+print(X)
+print(X.shape)
+
+
+
+
+
+#split data into train test sets
+splitlimit = int(len(X)*0.8)
+print(splitlimit)
+
+X_train, X_test = X[:splitlimit], X[splitlimit:]
+y_train, y_test = y[:splitlimit], y[splitlimit:]
+
+print(X_train.shape)
+print(X_test.shape)
+print(y_train.shape)
+print(y_test.shape)
+print(y_train)
+
+
+
+
+
+lstm_input = Input(shape=(backcandles, 8), name='lstm_input')
+inputs = LSTM(150, name='first_layer')(lstm_input)
+inputs = Dense(1, name='dense_layer')(inputs)
+output = Activation('linear', name='output')(inputs)
+model = Model(inputs=lstm_input, outputs=output)
+adam = optimizers.Adam()
+model.compile(optimizer=adam, loss='mse')
+model.fit(x=X_train, y=y_train, batch_size=15, epochs=30, shuffle=True, validation_split=0.1)
+
+
+
+
+
+y_pred = model.predict(X_test)
+for i in range(10):
+    print(y_pred[i], y_test[i])
+
+
+
+plt.figure(figsize=(16,8))
+plt.plot(y_test, color='blue', label ='Test')
+plt.plot(y_pred, color='pink', label = 'Pred')
+plt.legend()
+plt.show()

@@ -89,6 +89,22 @@ def json_pricesDays(days,symbol):
     }
     return data
 
+@app.route('/json/pricesWeeks/<weeks>/<symbol>')
+def json_pricesWeeks(weeks,symbol):
+    weeks = int(weeks)
+
+    df1, df2 = getData(symbol,"5y","1wk")
+    df2 = df2.tail(weeks)
+
+    obj = df2.to_json(orient="index")
+    obj = json.loads(obj)
+
+    data = {
+        "msg":"ok",
+        "data": obj
+    }
+    return data
+
 
 @app.route('/json/models')
 def json_models():
