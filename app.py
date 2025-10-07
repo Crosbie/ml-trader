@@ -95,7 +95,7 @@ def build_dataFrame1(fresh_df):
     fresh_df.ta.macd(append=True)
     fresh_df.ta.mad(append=True)
     fresh_df.ta.adx(append=True)
-    fresh_df.ta.ttm_trend(append=True)
+    # fresh_df.ta.ttm_trend(append=True)
     
     fresh_df.ta.vwap(append=True)
 
@@ -144,7 +144,7 @@ def build_dataFrame2(fresh_df):
     fresh_df.ta.macd(append=True)
     fresh_df.ta.mad(append=True)
     fresh_df.ta.adx(append=True)
-    fresh_df.ta.ttm_trend(append=True)
+    # fresh_df.ta.ttm_trend(append=True)
     fresh_df.ta.stochrsi(append=True)
     
     fresh_df.ta.vwap(append=True)

@@ -9,7 +9,7 @@ https://www.digitalocean.com/community/tutorials/how-to-install-python-3-and-set
 
 
 ### Start python env
-source trader_env/bin/activate
+source .venv/bin/activate
 
 
 pip install pip-tools
